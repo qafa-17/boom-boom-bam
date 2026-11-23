@@ -75,9 +75,9 @@
       if (mo > 12 && d <= 12) [mo, d] = [d, mo];
       return makeDate(m[3] ? +m[3] : null, mo, d, !!m[3]);
     }
-    if ((m = s.match(/^([a-z]+\.?) (\d{1,2})(?: (\d{4}|\d{2}))?$/)) && monthIndex(m[1]))
+    if ((m = s.match(/^([a-z]+\.?) (\d{1,2})(?: (\d{4}))?$/)) && monthIndex(m[1]))
       return makeDate(m[3] ? +m[3] : null, monthIndex(m[1]), +m[2], !!m[3]);
-    if ((m = s.match(/^(\d{1,2}) ([a-z]+\.?)(?: (\d{4}|\d{2}))?$/)) && monthIndex(m[2]))
+    if ((m = s.match(/^(\d{1,2}) ([a-z]+\.?)(?: (\d{4}))?$/)) && monthIndex(m[2]))
       return makeDate(m[3] ? +m[3] : null, monthIndex(m[2]), +m[1], !!m[3]);
     if (hadOrdinal && (m = s.match(/^(\d{1,2})$/))) {
       const t = today(), day = +m[1];

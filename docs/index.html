@@ -115,17 +115,11 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
 .fill { height: 100%; width: 0; background: var(--pc); border-radius: 999px; transition: width .35s ease; }
 .plabel { font-size: 10.5pt; color: var(--muted); white-space: nowrap; }
 .tools { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
-.seg button { border: 0; background: none; padding: 6px 12px; font-size: 11pt; font-weight: 600; color: var(--muted); min-height: 36px; }
-.seg button[aria-pressed=true] { background: var(--ink); color: var(--card); }
 .tools .ghost { margin-left: auto; }
 .tools .ghost b { background: var(--ink); color: var(--card); border-radius: 999px; padding: 0 7px; margin-left: 6px; font-size: 9pt; }
 #fpanel { margin: 8px 0; display: grid; gap: 10px; }
 #fpanel h4 { margin: 0 0 6px; font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 
-.gh { display: flex; align-items: baseline; gap: 8px; margin: 18px 2px 6px; font-size: 13pt; font-weight: 700; }
-.gh .n { font-size: 10pt; color: var(--muted); font-weight: 400; }
-.gh .mk { background: var(--c); color: var(--chip-text); padding: 0 7px; border-radius: 5px; }
 .it { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 10px 10px 10px 14px; }
 .ck { width: 22px; height: 22px; margin-top: 2px; border: 1.5px solid color-mix(in srgb, var(--ink) 75%, var(--muted)); border-radius: 6px; background: var(--card); padding: 0; display: grid; place-items: center; }
 .ck svg { width: 15px; height: 15px; fill: none; stroke: var(--card); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
@@ -134,6 +128,7 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
 .it .t b { font-weight: 700; }
 .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; font-size: 10.5pt; color: var(--muted); align-items: center; }
 .due { background: var(--c); color: var(--chip-text); border-radius: 5px; padding: 0 7px; font-weight: 600; white-space: nowrap; }
+.due.cat { font-weight: 700; }
 .due.over { box-shadow: inset 0 0 0 1.5px var(--err); }
 .edit { background: none; border: 0; color: var(--muted); font-size: 10.5pt; font-weight: 600; padding: 2px 4px; min-height: 32px; }
 .it.done .ck { background: var(--muted); border-color: var(--muted); }
@@ -148,16 +143,17 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
 .empty { text-align: center; padding: 34px 16px; color: var(--muted); }
 .empty code { font-family: inherit; background: var(--tint); color: var(--chip-text); padding: 0 6px; border-radius: 4px; }
 
-#boom {
-  position: fixed; left: 50%; bottom: max(26px, env(safe-area-inset-bottom)); transform: translateX(-50%);
-  background: var(--text); color: var(--card); border-radius: 999px; padding: 6px 26px 8px;
-  font-size: 22pt; font-style: italic; font-weight: 700; letter-spacing: .01em; pointer-events: none;
-  opacity: 0; z-index: 30; box-shadow: 0 10px 28px rgb(0 0 0 / .22);
-}
-#boom.on { animation: boom 1.25s ease forwards; }
-@keyframes boom { 0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.9); } 12% { opacity: 1; transform: translateX(-50%) scale(1.04); } 22% { transform: translateX(-50%) scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-4px); } }
 #toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-size: 11pt; display: flex; gap: 12px; align-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / .15); z-index: 31; max-width: 92vw; }
-@media (prefers-reduced-motion: reduce) { #boom.on { animation: boomrm 1.25s linear forwards; } @keyframes boomrm { 0%, 85% { opacity: 1; } 100% { opacity: 0; } } .fill { transition: none; } }
+/* Boom, Boom, Bam: the row slides off to the left and the word appears in its place */
+.it { position: relative; }
+.it > * { transition: transform .34s cubic-bezier(.55,0,.8,.3), opacity .34s ease; }
+.it.leaving > :not(.bw) { transform: translateX(-110vw); opacity: 0; }
+.bw { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+  font-size: 19pt; font-style: italic; font-weight: 700; color: var(--ink); opacity: 0;
+  animation: bw 1.05s .22s ease forwards; }
+@keyframes bw { 0% { opacity: 0; transform: scale(.85); } 18% { opacity: 1; transform: scale(1.06); } 28% { transform: scale(1); } 70% { opacity: 1; } 100% { opacity: 0; } }
+.list .it.gone { transition: none; }
+@media (prefers-reduced-motion: reduce) { .it > * { transition: none; } .it.leaving > :not(.bw) { transform: none; opacity: 0; } .bw { animation: bwrm 1s forwards; } @keyframes bwrm { 0%, 75% { opacity: 1; } 100% { opacity: 0; } } .fill { transition: none; } }
 
 /* side panel */
 main { max-width: 600px; }
@@ -225,7 +221,6 @@ main { max-width: 600px; }
 
  <div class="prog"><div class="track" role="progressbar" id="track" aria-valuemin="0" aria-valuemax="100" aria-label="Progress"><div class="fill" id="fill"></div></div><div class="plabel" id="plabel"></div></div>
  <div class="tools">
-  <div class="seg" role="group" aria-label="Sort by"><button data-mode="cat">By category</button><button data-mode="date">By due date</button></div>
   <button class="ghost" id="fbtn" aria-expanded="false">Filter</button>
  </div>
  <div class="card" id="fpanel" hidden></div>
@@ -246,7 +241,7 @@ SS trading cards need to make nov 27"></textarea></div>
  </div>
 </aside>
 <button class="fab" id="fab" aria-controls="composer" aria-expanded="false"><span aria-hidden="true">+</span> Add</button>
-<div id="boom" aria-live="polite"></div>
+<div id="sr" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></div>
 <div id="toast" role="status" hidden><span id="tmsg"></span><button class="link" id="tact" hidden>Undo</button></div>
 
 <script src="parse.js"></script>
@@ -286,7 +281,7 @@ let items = new Map((store.get('bbb-items', [])).map(i => [i.id, i]));
 let settings = { ...DEF, ...store.get('bbb-settings', {}) };
 let pending = new Set(store.get('bbb-pending', []));          // ids changed here and not yet on the server
 const ui = store.get('bbb-ui', {});
-const view = { list: ui.list || 'school', mode: ui.mode || 'cat', mix: new Set(ui.mix || ['finals', 'school']), cats: new Set(), due: 'all', month: 'auto' };
+const view = { list: ui.list || 'school', mode: 'date', mix: new Set(ui.mix || ['finals', 'school']), cats: new Set(), due: 'all', month: 'auto' };
 let editing = null, deferred = false, fOpen = false;
 const lists = () => [...BASE, ...(settings.extraLists || [])];
 const listName = id => (lists().find(l => l.id === id) || { name: 'List' }).name;
@@ -404,13 +399,10 @@ function dueOk(i) {
   return true;
 }
 const byDue = (a, b) => (a.due ? 0 : 1) - (b.due ? 0 : 1) || (a.due || '').localeCompare(b.due || '') || (a.time || '99').localeCompare(b.time || '99') || catKey(a).localeCompare(catKey(b)) || a.created - b.created;
-function bucket(i) {
-  if (!i.due) return ['No due date', '~'];
-  const n = days(i.due);
-  if (n < 0) return ['Overdue', '0']; if (n === 0) return ['Today', '1']; if (n === 1) return ['Tomorrow', '2']; if (n < 7) return ['This week', '3'];
-  const d = pd(i.due);
-  return [d.toLocaleDateString(undefined, { month: 'long', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }), '4' + i.due.slice(0, 7), d.getMonth()];
-}
+const byCat = (a, b) => (a.cat ? 0 : 1) - (b.cat ? 0 : 1) || catKey(a).localeCompare(catKey(b)) || byDue(a, b);
+// each category gets its own highlight colour, picked from its name so it stays the same everywhere
+const CAT_TINTS = ['#fbd9b5', '#d7dcfa', '#ead5f3', '#c9ece0', '#fdd3db', '#f2e49c', '#cfe6f3', '#e9dccb', '#f8cfc0', '#f3d4ec', '#c8e3e8'];
+function catTint(c) { let h = 0; for (const ch of c.toUpperCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return CAT_TINTS[h % CAT_TINTS.length]; }
 function row(i) {
   if (editing === i.id) {
     const raw = (i.cat ? i.cat + ' ' : '') + i.text;
@@ -418,11 +410,11 @@ function row(i) {
   }
   const d = i.due ? fmtDue(i) : null;
   const meta = [];
+  if (i.cat) meta.push(`<span class="due cat" style="--c:${catTint(i.cat)}">${esc(prettyCat(i.cat))}</span>`);
   if (d) meta.push(`<span class="due${d.over && !i.done ? ' over' : ''}" style="--c:${MONTHS[d.m].tint}">${esc(d.label)}</span><span>${esc(d.rel)}</span>`);
   if (view.list === 'mix') meta.push(`<span>${esc(listName(i.list))}</span>`);
   if (i.notes) meta.push(`<span>${esc(i.notes)}</span>`);
-  const cat = (view.mode !== 'cat' || i.done) && i.cat ? `<b>${esc(prettyCat(i.cat))}</b> &middot; ` : '';
-  return `<li class="it${i.done ? ' done' : ''}" data-id="${esc(i.id)}"><button class="ck" role="checkbox" aria-checked="${!!i.done}" aria-label="${i.done ? 'Mark not done' : 'Mark done'}: ${esc(i.text)}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><div><div class="t">${cat}${esc(i.text)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div><button class="edit" aria-label="Edit ${esc(i.text)}">Edit</button></li>`;
+  return `<li class="it${i.done ? ' done' : ''}" data-id="${esc(i.id)}"><button class="ck" role="checkbox" aria-checked="${!!i.done}" aria-label="${i.done ? 'Mark not done' : 'Mark done'}: ${esc(i.text)}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><div><div class="t">${esc(i.text)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div><button class="edit" aria-label="Edit ${esc(i.text)}">Edit</button></li>`;
 }
 function progress() {
   const scope = [...items.values()].filter(inScope), t = scope.length, d = scope.filter(i => i.done).length, p = t ? Math.round(d / t * 100) : 0;
@@ -430,7 +422,7 @@ function progress() {
   $('plabel').textContent = t ? `${d} of ${t} done` : 'Nothing on this list yet';
 }
 function render(fromSync) {
-  if (fromSync && editing) { deferred = true; return; }
+  if (fromSync && (editing || leaving)) { deferred = true; return; }
   deferred = false;
   const T = theme();
   const tabs = [...lists(), { id: 'mix', name: 'Combined' }];
@@ -441,40 +433,29 @@ function render(fromSync) {
   const prevTo = $('addTo').value;
   $('addTo').innerHTML = lists().map(l => `<option value="${esc(l.id)}">Add to ${esc(l.name)}</option>`).join('');
   $('addTo').value = mix ? (lists().some(l => l.id === prevTo) ? prevTo : 'school') : view.list;
-  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === view.mode));
   progress(); renderPreview();
 
   const scope = [...items.values()].filter(inScope);
   const cats = [...new Set(scope.map(catKey))].sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1) || a.localeCompare(b));
   for (const c of [...view.cats]) if (!cats.includes(c)) view.cats.delete(c);
-  const nf = view.cats.size + (view.due !== 'all' ? 1 : 0);
+  const nf = view.cats.size + (view.due !== 'all' ? 1 : 0) + (view.mode === 'cat' ? 1 : 0);
   $('fbtn').innerHTML = 'Filter' + (nf ? `<b>${nf}</b>` : '');
   $('fbtn').setAttribute('aria-expanded', fOpen); $('fpanel').hidden = !fOpen;
-  if (fOpen) $('fpanel').innerHTML = `<div><h4>Category</h4><div class="chips">${cats.length ? cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${view.cats.has(c)}">${esc(c ? prettyCat(c) : 'No category')}</button>`).join('') : '<span class="plabel">No categories yet</span>'}</div></div>
+  if (fOpen) $('fpanel').innerHTML = `<div><h4>Sort by</h4><div class="chips">${[['date', 'Due date'], ['cat', 'Category']].map(([k, v]) => `<button class="chip" data-mode="${k}" aria-pressed="${view.mode === k}">${v}</button>`).join('')}</div></div>
+    <div><h4>Category</h4><div class="chips">${cats.length ? cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${view.cats.has(c)}">${esc(c ? prettyCat(c) : 'No category')}</button>`).join('') : '<span class="plabel">No categories yet</span>'}</div></div>
     <div><h4>Due</h4><div class="chips">${[['all', 'Any time'], ['over', 'Overdue'], ['week', 'Next 7 days'], ['month', 'This month'], ['none', 'No due date']].map(([k, v]) => `<button class="chip" data-due="${k}" aria-pressed="${view.due === k}">${v}</button>`).join('')}</div></div>
-    ${nf ? '<div><button class="link" data-clear>Clear filters</button></div>' : ''}`;
+    ${nf ? '<div><button class="link" data-clear>Clear filters and sorting</button></div>' : ''}`;
 
   const shown = scope.filter(i => (!view.cats.size || view.cats.has(catKey(i))) && dueOk(i));
-  const act = shown.filter(i => !i.done).sort(byDue), done = shown.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+  const act = shown.filter(i => !i.done).sort(view.mode === 'cat' ? byCat : byDue), done = shown.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
   let h = '';
   if (!shown.length) {
     h = scope.length ? `<div class="empty">Nothing matches these filters. <button class="link" data-clear>Clear filters</button></div>`
       : `<div class="empty">Nothing on ${esc(mix ? 'these lists' : listName(view.list))} yet.<br><button class="link" data-open>Add something</button></div>`;
   } else {
-    const groups = new Map();
-    for (const i of act) {
-      let key, label, c = null;
-      if (view.mode === 'cat') { key = catKey(i) || '~'; label = i.cat ? prettyCat(i.cat) : 'No category'; }
-      else { const b = bucket(i); label = b[0]; key = b[1]; if (b[2] != null) c = MONTHS[b[2]].tint; }
-      if (!groups.has(key)) groups.set(key, { label, c, list: [] });
-      groups.get(key).list.push(i);
-    }
-    for (const k of [...groups.keys()].sort()) {
-      const g = groups.get(k);
-      h += `<h3 class="gh"><span${g.c ? ` class="mk" style="--c:${g.c}"` : ''}>${esc(g.label)}</span><span class="n">${g.list.length}</span></h3><ul class="list">${g.list.map(row).join('')}</ul>`;
-    }
+    if (act.length) h += `<ul class="list" id="open">${act.map(row).join('')}</ul>`;
     if (!act.length) h += `<div class="empty" style="padding:20px">All done here.</div>`;
-    if (done.length) h += `<h2 class="dh"><span>Done (${done.length})</span><button class="link" data-cleardone>Clear done</button></h2><ul class="list">${done.map(row).join('')}</ul>`;
+    if (done.length) h += `<h2 class="dh" style="margin-top:22px"><span>Done (${done.length})</span><button class="link" data-cleardone>Clear done</button></h2><ul class="list">${done.map(row).join('')}</ul>`;
   }
   $('board').innerHTML = h;
   if (editing) { const inp = document.querySelector('.ef input[name=t]'); if (inp && document.activeElement !== inp) inp.focus(); }
@@ -483,10 +464,17 @@ function render(fromSync) {
 // ---------- Boom, Boom, Bam ----------
 let boomCount = 0, hiddenAt = 0;
 const WORDS = ['Boom!', 'Boom!', 'Bam!'];
-function boom() {
-  const el = $('boom');
-  el.textContent = WORDS[boomCount++ % 3];
-  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+let leaving = 0;
+function boom(li) {
+  const word = WORDS[boomCount++ % 3];
+  $('sr').textContent = word;
+  const bw = document.createElement('div');
+  bw.className = 'bw'; bw.textContent = word; bw.setAttribute('aria-hidden', 'true');
+  li.appendChild(bw);
+  li.classList.add('leaving');
+  leaving++;
+  // once the word has faded, the item drops into Done at the bottom
+  setTimeout(() => { leaving--; if (!leaving) render(); }, 1300);
 }
 // Every fresh open starts again at Boom. Coming back after a few minutes away counts as a fresh open.
 document.addEventListener('visibilitychange', () => {
@@ -504,7 +492,7 @@ $('tact').onclick = () => { tFn && tFn(); $('toast').hidden = true; };
 let rT;
 $('board').addEventListener('click', e => {
   const t = e.target;
-  if (t.closest('[data-clear]')) { view.cats.clear(); view.due = 'all'; render(); return; }
+  if (t.closest('[data-clear]')) { view.cats.clear(); view.due = 'all'; view.mode = 'date'; render(); return; }
   if (t.closest('[data-open]')) { openComposer(); return; }
   if (t.closest('[data-cleardone]')) {
     const gone = [...items.values()].filter(i => inScope(i) && i.done);
@@ -517,9 +505,10 @@ $('board').addEventListener('click', e => {
   if (ckb) {
     const nd = !it.done;
     items.set(id, { ...it, done: nd, doneAt: nd ? Date.now() : 0 }); push(id);
-    li.classList.toggle('done', nd); ckb.setAttribute('aria-checked', nd);
-    if (nd) boom();
-    progress(); clearTimeout(rT); rT = setTimeout(() => render(), nd ? 650 : 150);
+    ckb.setAttribute('aria-checked', nd);
+    progress();
+    if (nd) boom(li);
+    else if (!leaving) render();
     return;
   }
   if (t.closest('.edit')) { editing = id; render(); return; }
@@ -583,13 +572,13 @@ $('board').addEventListener('touchend', e => {
   }
 }, { passive: true });
 $('mixbar').addEventListener('click', e => { const b = e.target.closest('[data-mix]'); if (!b) return; const id = b.dataset.mix; view.mix.has(id) ? view.mix.delete(id) : view.mix.add(id); saveUi(); render(); });
-document.querySelector('.seg').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) { view.mode = b.dataset.mode; saveUi(); render(); } });
 $('fbtn').onclick = () => { fOpen = !fOpen; render(); };
 $('fpanel').addEventListener('click', e => {
   const t = e.target, c = t.closest('[data-cat]');
   if (c) { const k = c.dataset.cat; view.cats.has(k) ? view.cats.delete(k) : view.cats.add(k); render(); return; }
   const d = t.closest('[data-due]'); if (d) { view.due = d.dataset.due; render(); return; }
-  if (t.closest('[data-clear]')) { view.cats.clear(); view.due = 'all'; render(); }
+  const m = t.closest('[data-mode]'); if (m) { view.mode = m.dataset.mode; render(); return; }
+  if (t.closest('[data-clear]')) { view.cats.clear(); view.due = 'all'; view.mode = 'date'; render(); }
 });
 
 // ---------- settings ----------
