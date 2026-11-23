@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>To do list</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: cosy stationery, playful but calm
+   IDEA: a doodled paper to-do pad that changes with the month
+   PICTURE: the list itself on patterned paper, month doodles at the corners
+   COLOUR and TYPE: month colour (peridot in Nov, ice blue in Dec) on cream; Fredoka + Nunito
+   LAYOUT: one paper column, tabs on top, sticky add bar at the bottom */
+:root{color-scheme:light dark;--hl:#d4ea7a;--ink:#5b7417;--pc:#e5484d;
+--bg:light-dark(#f8f3ea,#16140f);--paper:light-dark(#fffaf1,#24211b);--text:light-dark(#2d2a25,#f1ebdf);
+--muted:light-dark(#9a958c,#7c776e);--line:light-dark(#e7dfd0,#3a352c);
+--inkc:light-dark(var(--ink),color-mix(in srgb,var(--ink) 40%,#fff));
+--pt:light-dark(color-mix(in srgb,var(--hl) 30%,transparent),color-mix(in srgb,var(--hl) 8%,transparent));
+--row:light-dark(color-mix(in srgb,#fffaf1 90%,transparent),color-mix(in srgb,#24211b 92%,transparent))}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+body{margin:0;background:color-mix(in srgb,var(--hl) 28%,var(--bg));color:var(--text);font:16px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--inkc);outline-offset:2px}
+.wrap{max-width:660px;margin:0 auto;padding:clamp(10px,3vw,28px) clamp(8px,3vw,20px) 0}
+.paper{position:relative;background-color:var(--paper);border-radius:22px;box-shadow:0 1px 0 var(--line),0 12px 30px -14px rgb(0 0 0/.25);padding:18px clamp(12px,3.5vw,26px) 8px;overflow:hidden}
+[data-pat=stripes] .paper{background-image:repeating-linear-gradient(135deg,var(--pt) 0 16px,transparent 16px 32px)}
+[data-pat=checks] .paper{background-image:linear-gradient(45deg,var(--pt) 25%,transparent 25% 75%,var(--pt) 75%),linear-gradient(45deg,var(--pt) 25%,transparent 25% 75%,var(--pt) 75%);background-size:40px 40px;background-position:0 0,20px 20px}
+.paper::after{content:"";position:absolute;top:0;right:0;width:46px;height:46px;background:linear-gradient(225deg,var(--bg) 50%,var(--ink) 50%);border-bottom-left-radius:10px;opacity:.85}
+.dd{width:24px;height:24px;flex:none;display:inline-block;vertical-align:middle}
+header{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding-right:34px}
+.cluster{display:grid;grid-template-columns:repeat(2,22px);gap:2px}
+.cluster .dd{width:22px;height:22px}
+h1{font:700 clamp(32px,8vw,44px)/1.05 Fredoka,sans-serif;margin:0;color:var(--inkc);letter-spacing:.01em}
+h1 span{color:light-dark(#d0464b,#f08a8d)}
+.sub{font-weight:700;color:var(--muted);font-size:14px;margin-top:2px}
+.big{width:58px;height:58px}
+.iconbtn{width:44px;height:44px;border-radius:12px;border:2px solid var(--line);background:var(--row);display:grid;place-items:center}
+.iconbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tabs{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:14px 2px 6px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;scroll-snap-align:start;border:2px solid var(--line);background:var(--row);border-radius:999px;padding:8px 15px;font-weight:800;font-size:15px;min-height:44px}
+.tab[aria-selected=true]{background:var(--hl);border-color:var(--ink);color:#25231f}
+.mixbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px;font-weight:700;color:var(--muted);padding:2px 2px 6px}
+.chip{border:2px solid var(--line);background:var(--row);border-radius:999px;padding:5px 12px;font-weight:700;font-size:14px;min-height:36px}
+.chip[aria-pressed=true]{background:var(--inkc);border-color:var(--inkc);color:var(--paper)}
+.prog{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:6px 2px}
+.track{height:14px;border-radius:999px;background:var(--row);border:2px solid var(--line);overflow:hidden}
+.fill{height:100%;width:0;background:var(--pc);border-radius:999px;transition:width .4s ease}
+.plabel{font-weight:800;font-size:14px;white-space:nowrap}
+.tools{display:flex;gap:8px;align-items:center;padding:6px 2px 4px;flex-wrap:wrap}
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:12px;overflow:hidden;background:var(--row)}
+.seg button{border:0;background:none;padding:7px 12px;font-weight:700;font-size:14px;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--hl);color:#25231f}
+.fbtn{margin-left:auto;border:2px solid var(--line);background:var(--row);border-radius:12px;padding:7px 12px;font-weight:800;font-size:14px;min-height:40px}
+.fbtn b{background:var(--inkc);color:var(--paper);border-radius:999px;padding:0 7px;margin-left:4px;font-size:12px}
+.panel{background:var(--row);border:2px solid var(--line);border-radius:16px;padding:12px 14px;margin:6px 0;display:grid;gap:10px}
+.panel[hidden]{display:none}
+.panel h4{margin:0 0 4px;font:600 14px Fredoka,sans-serif;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.set{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700;flex-wrap:wrap}
+.set input[type=color]{width:54px;height:36px;border:2px solid var(--line);border-radius:10px;padding:2px;background:none}
+.set select,.set input[type=text]{border:2px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--paper);font-size:16px;min-height:40px}
+.set input[type=checkbox]{width:22px;height:22px;accent-color:var(--inkc)}
+.lnk{border:0;background:none;color:var(--inkc);font-weight:800;text-decoration:underline;padding:6px 2px}
+#board{min-height:260px;padding:4px 0 10px;touch-action:pan-y}
+.gh{display:flex;align-items:center;gap:8px;margin:16px 2px 6px;font:700 19px/1.2 Fredoka,sans-serif}
+.gh em{font:700 13px Nunito,sans-serif;font-style:normal;color:var(--muted)}
+.gh .mk{background:var(--c);color:#25231f;padding:0 8px;border-radius:7px}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.it{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;background:var(--row);border-radius:14px;padding:8px 6px 8px 10px;border:1.5px solid var(--line);transition:opacity .25s}
+.ck{width:30px;height:30px;margin-top:1px;border-radius:8px;border:2.5px solid var(--inkc);background:var(--paper);display:grid;place-items:center;padding:0}
+.ck svg{width:20px;height:20px;fill:none;stroke:var(--paper);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.it.done .ck{background:var(--muted);border-color:var(--muted)}
+.it.done .ck svg{opacity:1}
+.tx{padding-top:3px}
+.t{overflow-wrap:anywhere}
+.t b{font-weight:800}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.due{background:var(--c);color:#25231f;font-weight:800;font-size:13px;padding:1px 8px;border-radius:7px;white-space:nowrap}
+.due.over{box-shadow:inset 0 0 0 2px #c2363c}
+.lt{font-size:13px;font-weight:700;color:var(--muted);border:1.5px dashed var(--line);border-radius:7px;padding:0 7px}
+.ed{width:40px;height:40px;border:0;background:none;border-radius:10px;color:var(--muted);display:grid;place-items:center}
+.ed svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.it.done{opacity:.75}
+.it.done .t{color:var(--muted);text-decoration:line-through;text-decoration-thickness:2px}
+.it.done .t b{color:var(--muted)}
+.it.done .due{filter:grayscale(1);opacity:.6}
+.dh{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 6px;color:var(--muted);font:600 16px Fredoka,sans-serif}
+.ef{grid-column:1/-1;display:grid;gap:8px}
+.ef textarea{width:100%;border:2px solid var(--inkc);border-radius:10px;padding:8px 10px;font-size:16px;background:var(--paper);resize:vertical}
+.er{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.er input,.er select{border:2px solid var(--line);border-radius:10px;padding:6px 8px;font-size:16px;background:var(--paper);min-height:40px}
+.btn{border:2px solid var(--line);background:var(--paper);border-radius:10px;padding:7px 14px;font-weight:800;min-height:40px}
+.btn.pri{background:var(--inkc);border-color:var(--inkc);color:var(--paper)}
+.btn.warn{color:#c2363c;margin-right:auto}
+.empty{text-align:center;padding:36px 12px;color:var(--muted);font-weight:700}
+.empty .dd{width:70px;height:70px;margin-bottom:8px}
+.empty code{background:var(--hl);color:#25231f;border-radius:6px;padding:1px 6px;font-family:inherit;font-weight:800}
+.foot{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 4px}
+.foot svg.sw{width:110px;height:24px;fill:none;stroke:var(--inkc);stroke-width:2.4;stroke-linecap:round}
+.foot .dd{width:20px;height:20px}
+.add{position:sticky;bottom:0;padding:10px 0 max(12px,env(safe-area-inset-bottom));z-index:5}
+.addin{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end;background:var(--paper);border:2px solid var(--ink);border-radius:18px;padding:8px;box-shadow:0 10px 24px -12px rgb(0 0 0/.35)}
+.addin textarea{border:0;background:none;resize:none;font-size:16px;padding:8px 6px;line-height:1.4;max-height:140px;outline-offset:0}
+.addin input[type=date],.addin select{border:2px solid var(--line);border-radius:10px;padding:6px;font-size:15px;background:var(--row);min-height:44px;max-width:150px}
+.addbtn{width:44px;height:44px;border-radius:12px;border:0;background:var(--inkc);color:var(--paper);display:grid;place-items:center}
+.addbtn svg{width:22px;height:22px;stroke:currentColor;stroke-width:3;stroke-linecap:round}
+.addopts{display:flex;gap:8px;grid-column:1/-1;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted);font-weight:700}
+.sync{text-align:center;font-size:13px;color:var(--muted);font-weight:700;padding:0 0 8px}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+#toast{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--text);color:var(--paper);border-radius:12px;padding:10px 14px;font-weight:700;display:flex;gap:12px;align-items:center;z-index:60;max-width:92vw}
+#toast[hidden]{display:none}
+#toast button{background:none;border:0;color:var(--hl);font-weight:800;text-decoration:underline;padding:4px}
+@media(max-width:520px){.addin{grid-template-columns:1fr auto}.addin input[type=date]{grid-column:1}.big{width:46px;height:46px}.cluster{display:none}header{grid-template-columns:1fr auto auto}}
+@media(prefers-reduced-motion:reduce){.fill{transition:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="d-strawberry" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round"><path fill="#e5484d" d="M20 13c7 0 12 4 11 11-1 7-7 12-11 12S10 31 9 24c-1-7 4-11 11-11z"/><path fill="#6a9a3c" d="M20 15l-7-4h5l-2-5 4 4 4-4-2 5h5z"/></g><g fill="#fff"><circle cx="15" cy="21" r="1"/><circle cx="21" cy="20" r="1"/><circle cx="26" cy="23" r="1"/><circle cx="17" cy="27" r="1"/><circle cx="23" cy="29" r="1"/><circle cx="20" cy="33" r="1"/></g></symbol>
+<symbol id="d-clover" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linecap="round"><path fill="none" d="M20 20c3 6 4 10 8 15"/><g fill="#6a9a3c"><circle cx="14" cy="14" r="6.5"/><circle cx="26" cy="14" r="6.5"/><circle cx="14" cy="26" r="6.5"/><circle cx="26" cy="26" r="6.5"/></g></g><circle cx="20" cy="20" r="1.5" fill="#fff"/></symbol>
+<symbol id="d-heart" viewBox="0 0 40 40"><path fill="#e5484d" stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" d="M20 33S7 25 7 15.5A6.5 6.5 0 0 1 20 13a6.5 6.5 0 0 1 13 2.5C33 25 20 33 20 33z"/></symbol>
+<symbol id="d-sparkle" viewBox="0 0 40 40"><path fill="#f6c945" stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" d="M20 4l3.5 12.5L36 20l-12.5 3.5L20 36l-3.5-12.5L4 20l12.5-3.5z"/></symbol>
+<symbol id="d-snow" viewBox="0 0 40 40"><g fill="none" stroke="#4d9fd0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v30M7 12.5l26 15M7 27.5l26-15M16 8l4 4 4-4M16 32l4-4 4 4"/></g></symbol>
+<symbol id="d-mitten" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round"><path fill="#e5484d" d="M15 22c-4-2-7 1-6 4l6 5z"/><path fill="#e5484d" d="M14 31V18c0-7 3-11 8.5-11S31 11 31 18v13z"/><rect x="12.5" y="30" width="20" height="6" rx="2" fill="#fff"/></g></symbol>
+<symbol id="d-lantern" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20 3v5M20 32v5"/><ellipse cx="20" cy="20" rx="11" ry="9.5" fill="#e5484d"/><path fill="none" d="M20 10.5v19M14 12c-2.5 5-2.5 11 0 16M26 12c2.5 5 2.5 11 0 16"/><rect x="15" y="7.5" width="10" height="3.5" rx="1" fill="#f6c945"/><rect x="15" y="29" width="10" height="3.5" rx="1" fill="#f6c945"/></g></symbol>
+<symbol id="d-drop" viewBox="0 0 40 40"><path fill="#7cc0e8" stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" d="M20 5S10 18 10 25a10 10 0 0 0 20 0C30 18 20 5 20 5z"/><path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" d="M15 25a5 5 0 0 0 4 5"/></symbol>
+<symbol id="d-flower" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6"><path fill="none" stroke="#5f9445" stroke-width="2.2" d="M20 24v13"/><g fill="#f59ab8"><circle cx="20" cy="9.5" r="5.5"/><circle cx="28" cy="15.5" r="5.5"/><circle cx="25" cy="25" r="5.5"/><circle cx="15" cy="25" r="5.5"/><circle cx="12" cy="15.5" r="5.5"/></g><circle cx="20" cy="18" r="4.5" fill="#f6c945"/></g></symbol>
+<symbol id="d-tulip" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path fill="none" stroke="#5f9445" stroke-width="2.2" d="M20 22v15M20 31c-4-1-7-4-7-8M20 33c4-1 6-3 7-7"/><path fill="#c48ae0" d="M12 9l4 4 4-6 4 6 4-4v9a8 8 0 0 1-16 0z"/></g></symbol>
+<symbol id="d-lemon" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round"><path fill="#f6d84a" d="M6 23c0-7 7-12 14-12s14 5 14 12-7 11-14 11S6 30 6 23z"/><path fill="#6a9a3c" d="M21 11c2-4 6-6 11-5-1 4-6 6-11 5z"/></g><path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" d="M12 21c1-3 3-4 6-5"/></symbol>
+<symbol id="d-leaf" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path fill="#7fae4a" d="M7 33C7 17 17 7 34 7c0 16-10 26-27 26z"/><path fill="none" d="M7 33L26 14M16 24l-1-6M21 19l6 1"/></g></symbol>
+<symbol id="d-leafo" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path fill="#e8873a" d="M7 33C7 17 17 7 34 7c0 16-10 26-27 26z"/><path fill="none" d="M7 33L26 14M16 24l-1-6M21 19l6 1"/></g></symbol>
+<symbol id="d-fish" viewBox="0 0 40 40"><path fill="#7cc0e8" stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" d="M5 20c5-7 15-9 22-3l7-5v16l-7-5c-7 6-17 4-22-3z"/><circle cx="12" cy="19" r="1.5" fill="#3b3631"/></symbol>
+<symbol id="d-shell" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path fill="#f7b9a6" d="M20 34L5 18c3-8 9-11 15-11s12 3 15 11z"/><path fill="none" d="M20 34L12 10M20 34V7M20 34l8-24"/></g></symbol>
+<symbol id="d-sun" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linecap="round"><path fill="none" stroke="#e5a21a" stroke-width="2.4" d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M8 32l3.5-3.5M28.5 11.5L32 8"/><circle cx="20" cy="20" r="8" fill="#f6c945"/></g></symbol>
+<symbol id="d-apple" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path fill="#e5484d" d="M20 14c-3-2-11-2-12 6s4 15 8 15c2 0 3-1 4-1s2 1 4 1c4 0 9-7 8-15s-9-8-12-6z"/><path fill="none" d="M20 14c0-3 1-5 3-7"/><path fill="#6a9a3c" d="M22 10c2-3 6-4 9-2-2 3-6 4-9 2z"/></g></symbol>
+<symbol id="d-pumpkin" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round"><path fill="#6a9a3c" d="M19 14c0-3 0-5 2-8l2.5 1c-2 2-2 4.5-2 7z"/><ellipse cx="13.5" cy="24" rx="8" ry="10" fill="#f08a3c"/><ellipse cx="26.5" cy="24" rx="8" ry="10" fill="#f08a3c"/><ellipse cx="20" cy="24" rx="6" ry="10.5" fill="#f5a04f"/></g></symbol>
+<symbol id="d-mushroom" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round"><path fill="#efe4d0" d="M15.5 21h9l1.5 12c0 3-12 3-12 0z"/><path fill="#e5484d" d="M5 22c0-8 7-14 15-14s15 6 15 14z"/></g><g fill="#fff"><circle cx="13" cy="16" r="2"/><circle cx="22" cy="12.5" r="2.2"/><circle cx="28" cy="18" r="1.7"/></g></symbol>
+<symbol id="d-acorn" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path fill="#c98a4b" d="M11 19h18c0 9-4 15-9 17-5-2-9-8-9-17z"/><path fill="#8a5a2b" d="M8.5 20c0-6 5-10 11.5-10s11.5 4 11.5 10z"/><path fill="none" d="M20 10V5"/></g></symbol>
+<symbol id="d-teacup" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path fill="none" stroke="#9a958c" d="M15 4c-2 3 2 4 0 7M22 4c-2 3 2 4 0 7"/><path fill="none" d="M29 17c6 0 6 8 0 8"/><path fill="#fff" d="M8 15h22v6a11 11 0 0 1-22 0z"/><path fill="none" stroke="#e5484d" stroke-width="2" d="M9 19h20"/><path fill="#a9dcf2" d="M4 32h30c0 2-4 3.5-15 3.5S4 34 4 32z"/></g></symbol>
+<symbol id="d-tree" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round"><path fill="#8a5a2b" d="M17 27h6v8h-6z"/><path fill="#5f9e5a" d="M20 5L10 17h5L7 28h26l-8-11h5z"/><circle cx="20" cy="5" r="2.6" fill="#f6c945"/></g><g fill="#e5484d"><circle cx="16" cy="21" r="1.4"/><circle cx="24" cy="24" r="1.4"/><circle cx="21" cy="14" r="1.2"/></g></symbol>
+<symbol id="d-mug" viewBox="0 0 40 40"><g stroke="#3b3631" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="12" y="8" width="5" height="5" rx="1.2" fill="#fff"/><rect x="18" y="7" width="5" height="5" rx="1.2" fill="#fff"/><path fill="none" d="M29 17c6 0 6 9 0 9"/><path fill="#e5484d" d="M9 13h20v16a5 5 0 0 1-5 5H14a5 5 0 0 1-5-5z"/><path fill="none" stroke="#fff" stroke-width="2" d="M13 22h12"/></g></symbol>
+</svg>
+
+<div class="wrap">
+ <div class="paper">
+  <header>
+   <div class="cluster" id="cluster" aria-hidden="true"></div>
+   <div><h1>to do <span>list</span></h1><div class="sub" id="sub"></div></div>
+   <div style="display:flex;gap:8px;align-items:center"><svg class="dd big" id="bigdd" aria-hidden="true"><use href="#d-acorn"/></svg>
+   <button class="iconbtn" id="sbtn" aria-label="Settings" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
+  </header>
+
+  <div class="panel" id="spanel" hidden>
+   <div class="set"><label for="pcol">Progress bar colour</label><input type="color" id="pcol"></div>
+   <div class="set"><label for="conf">Confetti when I tick things off</label><input type="checkbox" id="conf"></div>
+   <div class="set"><label for="pat">Background pattern</label><select id="pat"><option value="auto">Changes monthly</option><option value="stripes">Stripes</option><option value="checks">Checks</option><option value="none">Plain</option></select></div>
+   <div class="set"><label for="prev">Preview a month's theme</label><select id="prev"></select></div>
+   <div class="set"><label for="newlist">Add a list</label><span style="display:flex;gap:6px"><input type="text" id="newlist" placeholder="e.g. Packing"><button class="btn" id="addlist">Add</button></span></div>
+   <div class="chips" id="customlists"></div>
+  </div>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Lists"></nav>
+  <div class="mixbar" id="mixbar" hidden></div>
+  <div class="prog"><div class="track" role="progressbar" id="track" aria-valuemin="0" aria-valuemax="100"><div class="fill" id="fill"></div></div><div class="plabel" id="plabel"></div></div>
+  <div class="tools">
+   <div class="seg" role="group" aria-label="Sort by"><button data-mode="cat">By category</button><button data-mode="date">By due date</button></div>
+   <button class="fbtn" id="fbtn" aria-expanded="false">Filter</button>
+  </div>
+  <div class="panel" id="fpanel" hidden></div>
+
+  <div id="board"></div>
+  <div class="foot" id="foot" aria-hidden="true"></div>
+  <div class="sync" id="sync">Connecting...</div>
+ </div>
+
+ <form class="add" id="add" autocomplete="off">
+  <div class="addin">
+   <textarea id="nt" rows="1" placeholder="Add something... start with CAPS for a category" aria-label="New item"></textarea>
+   <input type="date" id="nd" aria-label="Due date (optional)">
+   <button class="addbtn" aria-label="Add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+   <div class="addopts" id="addopts" hidden><label for="nl">Add to</label><select id="nl"></select></div>
+  </div>
+ </form>
+</div>
+<canvas id="fx"></canvas>
+<div id="toast" role="status" hidden><span id="tmsg"></span><button id="tact" hidden>Undo</button></div>
+
+<script>
+{
+const MONTHS=[
+ {n:'January',hl:'#f0a7b3',ink:'#8c1f36',d:['snow','mitten','sparkle']},
+ {n:'February',hl:'#f7bfd3',ink:'#a8436b',d:['heart','lantern','sparkle']},
+ {n:'March',hl:'#b7e6bd',ink:'#2f7a45',d:['clover','drop','flower']},
+ {n:'April',hl:'#c3d1fa',ink:'#3c56a8',d:['drop','tulip','flower']},
+ {n:'May',hl:'#dcc9f5',ink:'#6b49a3',d:['tulip','lemon','leaf']},
+ {n:'June',hl:'#f8b4b0',ink:'#b8333a',d:['strawberry','clover','heart']},
+ {n:'July',hl:'#a9dcef',ink:'#1f6f94',d:['fish','shell','sun']},
+ {n:'August',hl:'#fbe08a',ink:'#8a6a08',d:['sun','flower','lemon']},
+ {n:'September',hl:'#fcc39a',ink:'#b0541b',d:['apple','leafo','sparkle']},
+ {n:'October',hl:'#f2b98b',ink:'#9a4a17',d:['pumpkin','leafo','mushroom']},
+ {n:'November',hl:'#d4ea7a',ink:'#5b7417',d:['acorn','leafo','teacup','mushroom']},
+ {n:'December',hl:'#c6ebfa',ink:'#2a7aa0',d:['snow','tree','mug','sparkle']}];
+const BASE=[{id:'grocery',name:'Grocery'},{id:'finals',name:'Finals study'},{id:'home',name:'Home'},{id:'school',name:'School'}];
+const DEF={progressColor:'#e5484d',confetti:true,pattern:'auto',extraLists:[]};
+const LS='todo.v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dd=(n,cls='')=>`<svg class="dd ${cls}" aria-hidden="true"><use href="#d-${n}"/></svg>`;
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const pd=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const days=s=>Math.round((pd(s)-today())/864e5);
+const fmtCat=s=>s?s.charAt(0).toUpperCase()+s.slice(1).toLowerCase():'';
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+let items=new Map(),settings={...DEF},wasSynced=false;
+let view={list:'school',mode:'cat',cats:new Set(),due:'all',mix:new Set(['finals','school']),month:'auto'};
+let itemsCol=null,settingsDoc=null,dbReady=false,pending=new Set(),editing=null,deferred=false,fOpen=false;
+try{const c=JSON.parse(localStorage.getItem(LS)||'null');if(c){items=new Map((c.items||[]).map(i=>[i.id,i]));settings={...DEF,...c.settings};wasSynced=!!c.synced;if(c.view){view.list=c.view.list||view.list;view.mode=c.view.mode||'cat';if(c.view.mix)view.mix=new Set(c.view.mix)}}}catch(e){}
+const cache=()=>{try{localStorage.setItem(LS,JSON.stringify({items:[...items.values()],settings,synced:dbReady||wasSynced,view:{list:view.list,mode:view.mode,mix:[...view.mix]}}))}catch(e){}};
+const lists=()=>[...BASE,...(settings.extraLists||[])];
+const listName=id=>(lists().find(l=>l.id===id)||{name:id}).name;
+
+function parse(raw){
+ const toks=raw.trim().split(/\s+/).filter(Boolean),strip=t=>t.replace(/[:;,.!?]+$/,'');
+ const isC=t=>{const s=strip(t),L=s.replace(/[^A-Za-z]/g,'');return L.length>=2&&L===L.toUpperCase()&&/^[A-Z0-9&+'.\/-]+$/.test(s)};
+ let st=-1,en=-1;
+ for(let i=0;i<toks.length;i++){if(isC(toks[i])){if(st<0)st=i;en=i}else if(st>=0)break}
+ if(st<0)return{cat:'',text:toks.join(' ')};
+ const rest=[...toks.slice(0,st),...toks.slice(en+1)].join(' ').replace(/^[-:]\s*/,'');
+ if(!rest)return{cat:'',text:toks.join(' ')};
+ return{cat:toks.slice(st,en+1).map(strip).join(' '),text:rest};
+}
+function dueInfo(s){
+ const n=days(s),dt=pd(s);let rel;
+ if(n<0)rel=n===-1?'yesterday':(-n)+' days late';else if(n===0)rel='today';else if(n===1)rel='tomorrow';
+ else if(n<7)rel=dt.toLocaleDateString(undefined,{weekday:'long'});else rel='in '+n+' days';
+ return{n,m:dt.getMonth(),over:n<0,label:dt.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+rel};
+}
+
+/* ---------- saving ---------- */
+const Q={};
+function queue(k,fn){Q[k]=(Q[k]||Promise.resolve()).then(fn).catch(e=>{if(e&&e.code==='quota_exceeded')toast('Storage is full. Clear some finished items.');else setSync('err')})}
+function save(it){items.set(it.id,it);cache();if(dbReady)queue(it.id,()=>itemsCol.doc(it.id).set({...it}));else pending.add(it.id)}
+function remove(id){items.delete(id);cache();if(dbReady)queue(id,()=>itemsCol.doc(id).delete());else pending.add(id)}
+let sT;function saveSettings(){cache();clearTimeout(sT);sT=setTimeout(()=>{if(dbReady)queue('settings',()=>settingsDoc.set({...settings}))},500)}
+
+/* ---------- theme ---------- */
+function theme(){
+ const m=view.month==='auto'?new Date().getMonth():+view.month,T=MONTHS[m],r=document.documentElement.style;
+ r.setProperty('--hl',T.hl);r.setProperty('--ink',T.ink);r.setProperty('--pc',settings.progressColor);
+ document.body.dataset.pat=settings.pattern==='auto'?(m%2?'checks':'stripes'):settings.pattern;
+ return T;
+}
+
+/* ---------- view helpers ---------- */
+const inScope=i=>view.list==='mix'?view.mix.has(i.list):i.list===view.list;
+const ck=i=>(i.cat||'').toUpperCase();
+function dueOk(i){
+ const f=view.due;if(f==='all')return true;if(f==='none')return!i.due;if(!i.due)return false;
+ const n=days(i.due);if(f==='over')return n<0;if(f==='week')return n>=0&&n<7;
+ if(f==='month'){const d=pd(i.due),t=new Date();return d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear()}
+ return true;
+}
+const byDue=(a,b)=>(a.due?0:1)-(b.due?0:1)||(a.due||'').localeCompare(b.due||'')||ck(a).localeCompare(ck(b))||a.created-b.created;
+function bucket(i){
+ if(!i.due)return['No due date','~'];const n=days(i.due);
+ if(n<0)return['Overdue','0'];if(n===0)return['Today','1'];if(n===1)return['Tomorrow','2'];if(n<7)return['This week','3'];
+ const d=pd(i.due);return[d.toLocaleDateString(undefined,{month:'long',year:d.getFullYear()!==new Date().getFullYear()?'numeric':undefined}),'4'+ymd(d).slice(0,7),d.getMonth()];
+}
+
+function row(i){
+ if(editing===i.id)return editRow(i);
+ const d=i.due?dueInfo(i.due):null,showCat=view.mode!=='cat'&&i.cat,lt=view.list==='mix'?listName(i.list):'';
+ return `<li class="it${i.done?' done':''}" data-id="${esc(i.id)}"><button class="ck" role="checkbox" aria-checked="${!!i.done}" aria-label="${i.done?'Mark not done':'Mark done'}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><div class="tx"><span class="t">${showCat?`<b>${esc(fmtCat(i.cat))}</b> · `:''}${esc(i.text)}</span>${d||lt?`<span class="meta">${d?`<span class="due${d.over&&!i.done?' over':''}" style="--c:${MONTHS[d.m].hl}">${esc(d.label)}</span>`:''}${lt?`<span class="lt">${esc(lt)}</span>`:''}</span>`:''}</div><button class="ed" aria-label="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button></li>`;
+}
+function editRow(i){
+ const raw=(i.cat?i.cat.toUpperCase()+' ':'')+i.text;
+ return `<li class="it" data-id="${esc(i.id)}"><form class="ef"><textarea name="t" rows="2" aria-label="Item text">${esc(raw)}</textarea><div class="er"><input type="date" name="d" value="${esc(i.due||'')}" aria-label="Due date"><select name="l" aria-label="List">${lists().map(l=>`<option value="${esc(l.id)}"${l.id===i.list?' selected':''}>${esc(l.name)}</option>`).join('')}</select><button type="button" class="btn warn" data-act="del">Delete</button><button type="button" class="btn" data-act="cancel">Cancel</button><button class="btn pri">Save</button></div></form></li>`;
+}
+
+/* ---------- render ---------- */
+function render(fromSync){
+ if(fromSync&&editing){deferred=true;return}
+ deferred=false;
+ const T=theme();
+ $('#sub').textContent=MONTHS[view.month==='auto'?new Date().getMonth():+view.month].n+(view.month==='auto'?'':' preview');
+ $('#bigdd').innerHTML=`<use href="#d-${T.d[0]}"/>`;
+ $('#cluster').innerHTML=T.d.slice(1).concat(T.d[0]).slice(0,4).map(n=>dd(n)).join('');
+ $('#foot').innerHTML=dd(T.d[1%T.d.length])+'<svg class="sw" viewBox="0 0 110 24"><path d="M4 14c10-12 18 8 28 0s16-10 24 0 18 10 26 0 14-8 24 0"/></svg>'+dd(T.d[2%T.d.length]);
+ // tabs
+ const tabs=[...lists(),{id:'mix',name:'Mix lists'}];
+ $('#tabs').innerHTML=tabs.map(t=>`<button class="tab" role="tab" data-tab="${esc(t.id)}" aria-selected="${t.id===view.list}">${esc(t.name)}</button>`).join('');
+ const mb=$('#mixbar');mb.hidden=view.list!=='mix';
+ if(view.list==='mix')mb.innerHTML='Showing: '+lists().map(l=>`<button class="chip" data-mix="${esc(l.id)}" aria-pressed="${view.mix.has(l.id)}">${esc(l.name)}</button>`).join('');
+ $('#addopts').hidden=view.list!=='mix';
+ $('#nl').innerHTML=lists().filter(l=>view.mix.has(l.id)||view.list!=='mix').map(l=>`<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('')||lists().map(l=>`<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('');
+ document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===view.mode));
+ const scope=[...items.values()].filter(inScope);
+ progress(scope);
+ // filter panel
+ const cats=[...new Set(scope.map(ck))].sort((a,b)=>(a?0:1)-(b?0:1)||a.localeCompare(b));
+ for(const c of [...view.cats])if(!cats.includes(c))view.cats.delete(c);
+ const nf=view.cats.size+(view.due!=='all'?1:0);
+ $('#fbtn').innerHTML='Filter'+(nf?`<b>${nf}</b>`:'');
+ const fp=$('#fpanel');fp.hidden=!fOpen;$('#fbtn').setAttribute('aria-expanded',fOpen);
+ if(fOpen)fp.innerHTML=`<div><h4>Category</h4><div class="chips">${cats.length?cats.map(c=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${view.cats.has(c)}">${esc(c?fmtCat(c):'No category')}</button>`).join(''):'<span class="sub">No categories yet</span>'}</div></div>
+ <div><h4>Due</h4><div class="chips">${[['all','Any time'],['over','Overdue'],['week','Next 7 days'],['month','This month'],['none','No due date']].map(([k,v])=>`<button class="chip" data-due="${k}" aria-pressed="${view.due===k}">${v}</button>`).join('')}</div></div>
+ ${nf?'<div><button class="lnk" data-clear>Clear filters</button></div>':''}`;
+ // board
+ const shown=scope.filter(i=>(!view.cats.size||view.cats.has(ck(i)))&&dueOk(i));
+ const act=shown.filter(i=>!i.done),done=shown.filter(i=>i.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+ let h='';
+ if(!shown.length){
+  h=scope.length?`<div class="empty">${dd(T.d[2%T.d.length])}<div>Nothing matches these filters.</div><button class="lnk" data-clear>Clear filters</button></div>`
+  :`<div class="empty">${dd(T.d[0])}<div>Nothing here yet.</div><div style="margin-top:6px">Try <code>CHEM finish lab report</code> and pick a date.<br>Paste several lines to add them all at once.</div></div>`;
+ }else{
+  const groups=new Map();
+  for(const i of act.sort(byDue)){
+   let key,label,c=null;
+   if(view.mode==='cat'){key=ck(i)||'~';label=i.cat?fmtCat(i.cat):'No category'}
+   else{const b=bucket(i);label=b[0];key=b[1];if(b[2]!=null)c=MONTHS[b[2]].hl}
+   if(!groups.has(key))groups.set(key,{label,c,list:[]});groups.get(key).list.push(i);
+  }
+  const keys=[...groups.keys()].sort();let gi=0;
+  for(const k of keys){const g=groups.get(k);
+   h+=`<h3 class="gh">${dd(T.d[gi++%T.d.length])}<span${g.c?` class="mk" style="--c:${g.c}"`:''}>${esc(g.label)}</span><em>${g.list.length}</em></h3><ul>${g.list.map(row).join('')}</ul>`}
+  if(!act.length)h+=`<div class="empty" style="padding:20px">${dd('sparkle')}<div>All done here. Nice work!</div></div>`;
+  if(done.length)h+=`<div class="dh"><span>Done (${done.length})</span><button class="lnk" data-cleardone>Clear done</button></div><ul>${done.map(row).join('')}</ul>`;
+ }
+ $('#board').innerHTML=h;
+ if(editing){const ta=document.querySelector('.ef textarea');if(ta&&document.activeElement!==ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}}
+ const at=document.querySelector('.tab[aria-selected=true]');at&&at.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function progress(scope){
+ scope=scope||[...items.values()].filter(inScope);
+ const t=scope.length,d=scope.filter(i=>i.done).length,p=t?Math.round(d/t*100):0;
+ $('#fill').style.width=p+'%';$('#track').setAttribute('aria-valuenow',p);
+ $('#plabel').textContent=t?`${d} of ${t} done · ${p}%`:'Nothing on this list yet';
+}
+
+/* ---------- toast ---------- */
+let tT,tFn;
+function toast(msg,undo){$('#tmsg').textContent=msg;tFn=undo;$('#tact').hidden=!undo;$('#toast').hidden=false;clearTimeout(tT);tT=setTimeout(()=>$('#toast').hidden=true,5000)}
+$('#tact').onclick=()=>{tFn&&tFn();$('#toast').hidden=true};
+
+/* ---------- confetti ---------- */
+const cv=$('#fx'),cx=cv.getContext('2d');let parts=[],raf=0,lastB=0;
+function size(){const r=devicePixelRatio||1;cv.width=innerWidth*r;cv.height=innerHeight*r;cx.setTransform(r,0,0,r,0,0)}
+addEventListener('resize',size);size();
+function burst(el){
+ const now=performance.now(),rapid=now-lastB<1500;lastB=now;
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,cs=getComputedStyle(document.documentElement);
+ const cols=[cs.getPropertyValue('--hl').trim(),cs.getPropertyValue('--ink').trim(),settings.progressColor,'#f6c945','#f59ab8'];
+ const n=rapid?12:36,life=rapid?360:780;
+ for(let k=0;k<n;k++){const a=Math.random()*Math.PI*2,sp=(rapid?2.5:4)+Math.random()*(rapid?3:5);
+  parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(rapid?1.5:3),t0:now,life:life*(.7+Math.random()*.3),c:cols[k%cols.length],s:3+Math.random()*4,r:Math.random()*6,vr:(Math.random()-.5)*.4})}
+ if(!raf)raf=requestAnimationFrame(tick);
+}
+function tick(now){
+ cx.clearRect(0,0,innerWidth,innerHeight);
+ parts=parts.filter(p=>now-p.t0<p.life);
+ for(const p of parts){const a=(now-p.t0)/p.life;p.vy+=.22;p.vx*=.97;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
+  cx.save();cx.globalAlpha=1-a;cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/3,p.s,p.s*.66);cx.restore()}
+ raf=parts.length?requestAnimationFrame(tick):0;
+ if(!raf)cx.clearRect(0,0,innerWidth,innerHeight);
+}
+
+/* ---------- events ---------- */
+let rT;
+$('#board').addEventListener('click',e=>{
+ const t=e.target;
+ if(t.closest('[data-clear]')){view.cats.clear();view.due='all';render();return}
+ if(t.closest('[data-cleardone]')){
+  const gone=[...items.values()].filter(i=>inScope(i)&&i.done);gone.forEach(i=>remove(i.id));render();
+  toast(`Cleared ${gone.length} finished item${gone.length===1?'':'s'}`,()=>{gone.forEach(save);render()});return}
+ const li=t.closest('.it');if(!li)return;const id=li.dataset.id,it=items.get(id);if(!it)return;
+ const ckb=t.closest('.ck');
+ if(ckb){
+  const nd=!it.done;save({...it,done:nd,doneAt:nd?Date.now():0});
+  li.classList.toggle('done',nd);ckb.setAttribute('aria-checked',nd);
+  if(nd&&settings.confetti)burst(ckb);
+  progress();clearTimeout(rT);rT=setTimeout(()=>render(),nd?700:150);return}
+ if(t.closest('.ed')){editing=id;render();return}
+ const a=t.closest('[data-act]');
+ if(a&&a.dataset.act==='cancel'){editing=null;render();return}
+ if(a&&a.dataset.act==='del'){editing=null;remove(id);render();toast('Item deleted',()=>{save(it);render()});return}
+});
+$('#board').addEventListener('submit',e=>{
+ e.preventDefault();const f=e.target,id=f.closest('.it').dataset.id,it=items.get(id);
+ const raw=f.t.value.trim();editing=null;
+ if(it&&raw){const p=parse(raw);save({...it,...p,due:f.d.value||'',list:f.l.value})}
+ render();
+});
+$('#board').addEventListener('keydown',e=>{if(e.key==='Escape'&&editing){editing=null;render()}});
+// swipe between lists
+let sx=0,sy=0;
+$('#board').addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+$('#board').addEventListener('touchend',e=>{
+ if(editing)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+ if(Math.abs(dx)>70&&Math.abs(dx)>2*Math.abs(dy)){const ids=[...lists().map(l=>l.id),'mix'],k=ids.indexOf(view.list);
+  const nk=Math.min(ids.length-1,Math.max(0,k+(dx<0?1:-1)));if(nk!==k){view.list=ids[nk];view.cats.clear();cache();render()}}
+},{passive:true});
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;view.list=b.dataset.tab;view.cats.clear();editing=null;cache();render()});
+$('#tabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const ids=[...lists().map(l=>l.id),'mix'],k=ids.indexOf(view.list),nk=Math.min(ids.length-1,Math.max(0,k+(e.key==='ArrowRight'?1:-1)));view.list=ids[nk];view.cats.clear();cache();render();document.querySelector('.tab[aria-selected=true]').focus()});
+$('#mixbar').addEventListener('click',e=>{const b=e.target.closest('[data-mix]');if(!b)return;const id=b.dataset.mix;view.mix.has(id)?view.mix.delete(id):view.mix.add(id);cache();render()});
+document.querySelector('.seg').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(!b)return;view.mode=b.dataset.mode;cache();render()});
+$('#fbtn').onclick=()=>{fOpen=!fOpen;render()};
+$('#fpanel').addEventListener('click',e=>{const t=e.target;
+ const c=t.closest('[data-cat]');if(c){const k=c.dataset.cat;view.cats.has(k)?view.cats.delete(k):view.cats.add(k);render();return}
+ const d=t.closest('[data-due]');if(d){view.due=d.dataset.due;render();return}
+ if(t.closest('[data-clear]')){view.cats.clear();view.due='all';render()}});
+// add
+const nt=$('#nt');
+const grow=()=>{nt.style.height='auto';nt.style.height=Math.min(nt.scrollHeight,140)+'px'};
+nt.addEventListener('input',grow);
+nt.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$('#add').requestSubmit()}});
+$('#add').addEventListener('submit',e=>{
+ e.preventDefault();const lines=nt.value.split(/\n+/).map(s=>s.replace(/^\s*[-*•]\s*/,'').trim()).filter(Boolean);if(!lines.length)return;
+ const list=view.list==='mix'?($('#nl').value||'school'):view.list,due=$('#nd').value||'';
+ lines.forEach((l,k)=>{const p=parse(l);save({id:uid(),...p,due,list,done:false,doneAt:0,created:Date.now()+k})});
+ nt.value='';$('#nd').value='';grow();render();
+ if(lines.length>1)toast(`Added ${lines.length} items`);
+});
+// settings
+const months=[['auto','This month (auto)'],...MONTHS.map((m,k)=>[String(k),m.n])];
+$('#prev').innerHTML=months.map(([v,n])=>`<option value="${v}">${n}</option>`).join('');
+function syncSettingsUI(){$('#pcol').value=settings.progressColor;$('#conf').checked=!!settings.confetti;$('#pat').value=settings.pattern;$('#prev').value=view.month;
+ $('#customlists').innerHTML=(settings.extraLists||[]).map(l=>`<button class="chip" data-rmlist="${esc(l.id)}" aria-label="Remove list ${esc(l.name)}">${esc(l.name)} ×</button>`).join('')}
+$('#sbtn').onclick=()=>{const p=$('#spanel');p.hidden=!p.hidden;$('#sbtn').setAttribute('aria-expanded',!p.hidden);syncSettingsUI()};
+$('#pcol').addEventListener('input',e=>{settings.progressColor=e.target.value;theme();saveSettings()});
+$('#conf').onchange=e=>{settings.confetti=e.target.checked;saveSettings()};
+$('#pat').onchange=e=>{settings.pattern=e.target.value;theme();saveSettings()};
+$('#prev').onchange=e=>{view.month=e.target.value;render()};
+$('#addlist').onclick=e=>{e.preventDefault();const n=$('#newlist').value.trim();if(!n)return;const id='l'+uid();
+ settings.extraLists=[...(settings.extraLists||[]),{id,name:n}];$('#newlist').value='';view.list=id;saveSettings();syncSettingsUI();render()};
+$('#customlists').addEventListener('click',e=>{const b=e.target.closest('[data-rmlist]');if(!b)return;const id=b.dataset.rmlist;
+ if([...items.values()].some(i=>i.list===id)){toast('Move or clear the items on that list first');return}
+ settings.extraLists=settings.extraLists.filter(l=>l.id!==id);if(view.list===id)view.list='school';saveSettings();syncSettingsUI();render()});
+// month rollover: doodles + theme change on the 1st
+let curM=new Date().getMonth(),curD=ymd(new Date());
+setInterval(()=>{const n=new Date();if(ymd(n)!==curD){curD=ymd(n);curM=n.getMonth();render(true)}},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ymd(new Date())!==curD){curD=ymd(new Date());render(true)}});
+
+/* ---------- sync ---------- */
+function setSync(s){$('#sync').textContent={on:'Synced across your devices',local:'Saved on this device only (open it signed in to Claude to sync)',slow:'Can’t reach sync right now. Your changes are kept here.',err:'A change didn’t sync. It’s still saved on this device.'}[s]||'Connecting...'}
+render();
+(async()=>{
+ if(!window.claude||!claude.use){setSync('local');return}
+ const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
+ const id=user&&await user.id();
+ if(!db||!id){setSync('local');return}
+ const root=db.doc('data/users/'+id+'/todo');
+ itemsCol=root.collection('items');settingsDoc=db.doc('data/users/'+id+'/settings');
+ const local=new Map(items);let first=true;
+ const timer=setTimeout(()=>setSync('slow'),10000);
+ itemsCol.onSnapshot(snap=>{
+  const m=new Map(snap.docs.map(d=>[d.id,{...d.data(),id:d.id}]));
+  if(first&&!snap.metadata.fromCache){
+   first=false;clearTimeout(timer);dbReady=true;
+   const up=(!wasSynced&&snap.empty)?[...local.keys()]:[...pending];
+   for(const k of up){if(local.has(k)){m.set(k,local.get(k));queue(k,()=>itemsCol.doc(k).set({...local.get(k)}))}else{m.delete(k);queue(k,()=>itemsCol.doc(k).delete())}}
+   pending.clear();wasSynced=true;setSync('on');
+  }
+  if(!first){items=m;cache();render(true)}
+ },()=>{clearTimeout(timer);setSync('err')});
+ settingsDoc.onSnapshot(s=>{if(s.exists){settings={...DEF,...s.data()};cache();syncSettingsUI();render(true)}},()=>{});
+})();
+}
+</script>
+</body>
+</html>
