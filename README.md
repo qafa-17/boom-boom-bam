@@ -10,11 +10,11 @@ SS trading cards need to make nov 27     ->  Need to make trading cards    Due F
 ## Features
 
 - **Type loosely.** Dates (`nov 27`, `12/5`, `fri`, `tmrw`, `in 2 weeks`, `this weekend`) and times (`3pm`) are found anywhere in a line. ALL CAPS at the start (or end) becomes the category: short codes stay as typed (`SS`), words become `Chem`. Wording gets tidied: `trading cards need to make` becomes `Need to make trading cards`.
-- **Paste a whole list.** One item per line, with a preview of what each line becomes before you add it.
+- **Side panel for adding.** Press **+ Add** (or **N** on a keyboard) to slide out the note, type or paste one item per line, and see what each line becomes before you add it. It tucks away again when you're done, so the list stays in the middle of the page.
 - **Lists:** Grocery, Finals study, Home, School, plus your own. Swipe or click between them, or use **Combined** to see several lists together sorted by subject.
 - **Sort and filter** by category or due date (overdue, next 7 days, this month, no due date).
 - **Due dates** are highlighted in their month's colour (peridot for November, ice blue for December, and so on). Late items get a red outline.
-- **Monthly look:** the accent colour, background (pinstripe or grid) and the ink sketch in the header all change on the 1st.
+- **Monthly look:** the accent colour and background (pinstripe or grid) change on the 1st.
 - **Progress bar** per list, colour adjustable in Settings.
 - **Boom, Boom, Bam.** Each item you tick off shows *Boom!*, *Boom!*, *Bam!*, in that order, starting over each time you open the app.
 - Finished items go grey with a line through them and move to the bottom.

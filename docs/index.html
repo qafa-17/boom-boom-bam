@@ -17,9 +17,9 @@
 <style>
 /* VOICE: calm, grown-up planner. Same family as Quick Add.
    IDEA: a well-kept paper planner whose ink colour changes with the month
-   PICTURE: the list itself, white cards on a faintly ruled page, one ink sketch per month
+   PICTURE: the list itself, white cards on a faintly ruled page
    COLOUR and TYPE: cool paper grey, month accent (peridot Nov, ice blue Dec), Crimson Text
-   LAYOUT: one column; note to type into, preview, then the list */
+   LAYOUT: list centred; the note to type into slides in from the right */
 :root {
   --bg: #eef0f3; --text: #1d2330; --muted: #677084; --border: #dfe3ea; --card: #ffffff;
   --accent: #5f7a1c; --tint: #e4efbf; --pc: var(--accent);
@@ -55,8 +55,6 @@ button { cursor: pointer; }
 main { max-width: 640px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px 96px; }
 
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 2px 10px; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand svg { width: 40px; height: 40px; color: var(--ink); flex: none; }
 h1 { font-size: 17pt; margin: 0; line-height: 1.1; }
 .month { font-size: 10pt; color: var(--muted); font-style: italic; }
 .hr { display: flex; align-items: center; gap: 10px; }
@@ -148,7 +146,6 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
 .ef .del { color: var(--err); margin-right: auto; }
 .dh { display: flex; justify-content: space-between; align-items: baseline; }
 .empty { text-align: center; padding: 34px 16px; color: var(--muted); }
-.empty svg { width: 56px; height: 56px; color: var(--ink); opacity: .8; display: block; margin: 0 auto 8px; }
 .empty code { font-family: inherit; background: var(--tint); color: var(--chip-text); padding: 0 6px; border-radius: 4px; }
 
 #boom {
@@ -161,27 +158,37 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
 @keyframes boom { 0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.9); } 12% { opacity: 1; transform: translateX(-50%) scale(1.04); } 22% { transform: translateX(-50%) scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-4px); } }
 #toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-size: 11pt; display: flex; gap: 12px; align-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / .15); z-index: 31; max-width: 92vw; }
 @media (prefers-reduced-motion: reduce) { #boom.on { animation: boomrm 1.25s linear forwards; } @keyframes boomrm { 0%, 85% { opacity: 1; } 100% { opacity: 0; } } .fill { transition: none; } }
+
+/* side panel */
+main { max-width: 600px; }
+#composer {
+  position: fixed; top: 0; right: 0; height: 100vh; height: 100dvh; width: min(340px, 100vw); z-index: 20;
+  background: var(--bg); border-left: 1px solid var(--border); box-shadow: -14px 0 32px rgb(20 30 50 / .10);
+  display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden;
+  transition: transform .22s ease, visibility 0s linear .22s;
+}
+#composer.open { transform: none; visibility: visible; transition: transform .22s ease; }
+.dhead { display: flex; align-items: center; justify-content: space-between; padding: max(14px, env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid var(--border); }
+.dbody { flex: 1; overflow-y: auto; padding: 14px 16px max(24px, env(safe-area-inset-bottom)); }
+.dbody .note textarea { min-height: 130px; }
+.bar select { font-size: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px; min-height: 40px; max-width: 48%; }
+#scrim { position: fixed; inset: 0; background: rgb(10 15 25 / .28); z-index: 19; }
+.fab {
+  position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 15;
+  background: var(--ink); color: var(--card); border: 0; border-radius: 999px; padding: 10px 20px 11px;
+  font-size: 13pt; font-weight: 700; box-shadow: 0 8px 22px rgb(20 30 50 / .25); min-height: 46px;
+}
+.fab span { font-size: 15pt; line-height: 1; margin-right: 2px; }
+.fab[aria-expanded=true] { display: none; }
+@media (pointer: coarse) { .kbd { display: none; } }
+@media (prefers-reduced-motion: reduce) { #composer, #composer.open { transition: none; } }
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
- <symbol id="d-snow" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v30M7 12.5l26 15M7 27.5l26-15M16 8l4 4 4-4M16 32l4-4 4 4M7.5 18l4.5 2.5-1 5M32.5 22l-4.5-2.5 1-5"/></g></symbol>
- <symbol id="d-heart" viewBox="0 0 40 40"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M20 33S7 25 7 15.5A6.5 6.5 0 0 1 20 13a6.5 6.5 0 0 1 13 2.5C33 25 20 33 20 33z"/></symbol>
- <symbol id="d-clover" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 20c3 6 4 10 8 15"/><path d="M20 20c-6-1-9-4-9-7a3.5 3.5 0 0 1 7-1M20 20c1-6 4-9 7-9a3.5 3.5 0 0 1 1 7M20 20c6 1 9 4 9 7a3.5 3.5 0 0 1-7 1M20 20c-1 6-4 9-7 9a3.5 3.5 0 0 1-1-7"/></g></symbol>
- <symbol id="d-tulip" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 22v15M20 31c-4-1-7-4-7-8M20 33c4-1 6-3 7-7"/><path d="M12 9l4 4 4-6 4 6 4-4v9a8 8 0 0 1-16 0z"/></g></symbol>
- <symbol id="d-lemon" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M6 23c0-7 7-12 14-12s14 5 14 12-7 11-14 11S6 30 6 23z"/><path d="M21 11c2-4 6-6 11-5-1 4-6 6-11 5zM12 21c1-3 3-4 6-5"/></g></symbol>
- <symbol id="d-strawberry" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 13c7 0 12 4 11 11-1 7-7 12-11 12S10 31 9 24c-1-7 4-11 11-11z"/><path d="M20 15l-7-4h5l-2-5 4 4 4-4-2 5h5z"/><path d="M15 21h.01M21 20h.01M26 23h.01M17 27h.01M23 29h.01M20 33h.01" stroke-width="2.2"/></g></symbol>
- <symbol id="d-shell" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 34L5 18c3-8 9-11 15-11s12 3 15 11z"/><path d="M20 34L12 10M20 34V7M20 34l8-24"/></g></symbol>
- <symbol id="d-sun" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="20" cy="20" r="7.5"/><path d="M20 4v5M20 31v5M4 20h5M31 20h5M8.5 8.5l3.5 3.5M28 28l3.5 3.5M8.5 31.5l3.5-3.5M28 12l3.5-3.5"/></g></symbol>
- <symbol id="d-apple" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 14c-3-2-11-2-12 6s4 15 8 15c2 0 3-1 4-1s2 1 4 1c4 0 9-7 8-15s-9-8-12-6z"/><path d="M20 14c0-3 1-5 3-7M22 10c2-3 6-4 9-2-2 3-6 4-9 2z"/></g></symbol>
- <symbol id="d-leaf" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M7 33C7 17 17 7 34 7c0 16-10 26-27 26z"/><path d="M7 33L26 14M16 24l-1-6M21 19l6 1"/></g></symbol>
- <symbol id="d-acorn" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M11 19h18c0 9-4 15-9 17-5-2-9-8-9-17z"/><path d="M8.5 20c0-6 5-10 11.5-10s11.5 4 11.5 10z"/><path d="M20 10V5M13 15l3 3M20 13v4M27 15l-3 3"/></g></symbol>
- <symbol id="d-pine" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 4v32M20 10l-6-4M20 10l6-4M20 16l-8-5M20 16l8-5M20 22l-10-5M20 22l10-5M20 28l-11-5M20 28l11-5"/></g></symbol>
-</svg>
 
 <main>
  <header>
-  <div class="brand"><svg aria-hidden="true" id="brandArt"><use href="#d-acorn"/></svg><div><h1>To do</h1><div class="month" id="month"></div></div></div>
+  <div class="brand"><h1>To do</h1><div class="month" id="month"></div></div>
   <div class="hr"><span id="sync">This device only</span><button class="ghost" id="gear" aria-expanded="false" aria-controls="settings">Settings</button></div>
  </header>
 
@@ -216,14 +223,6 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
  <nav class="tabs" id="tabs" role="tablist" aria-label="Lists"></nav>
  <div class="mixbar" id="mixbar" hidden></div>
 
- <div class="note"><textarea id="note" rows="3" spellcheck="true" aria-label="Add items, one per line" placeholder="Type it however it comes out, one per line
-Career Mentorship sign up -- nov 21
-SS trading cards need to make nov 27"></textarea></div>
- <div class="bar"><button class="solid" id="add" disabled>Add</button><select id="addTo" aria-label="Add to list" class="ghost" hidden></select></div>
- <p class="hint">ALL CAPS at the start becomes the category. Dates like nov 27, fri, tmrw or 12/5 are picked up anywhere in the line.</p>
-
- <section id="previewWrap" hidden><h2>Ready to add</h2><ul class="list" id="preview"></ul></section>
-
  <div class="prog"><div class="track" role="progressbar" id="track" aria-valuemin="0" aria-valuemax="100" aria-label="Progress"><div class="fill" id="fill"></div></div><div class="plabel" id="plabel"></div></div>
  <div class="tools">
   <div class="seg" role="group" aria-label="Sort by"><button data-mode="cat">By category</button><button data-mode="date">By due date</button></div>
@@ -232,6 +231,21 @@ SS trading cards need to make nov 27"></textarea></div>
  <div class="card" id="fpanel" hidden></div>
  <div id="board"></div>
 </main>
+<div id="scrim" hidden></div>
+<aside id="composer" aria-label="Add items" aria-hidden="true">
+ <div class="dhead"><h2 style="margin:0">New items</h2><button class="ghost" id="closeC" aria-label="Close panel">Close</button></div>
+ <div class="dbody">
+ <div class="note"><textarea id="note" rows="3" spellcheck="true" aria-label="Add items, one per line" placeholder="Type it however it comes out, one per line
+Career Mentorship sign up -- nov 21
+SS trading cards need to make nov 27"></textarea></div>
+ <div class="bar"><select id="addTo" aria-label="Add to list"></select><button class="solid" id="add" disabled>Add</button></div>
+ <p class="hint">ALL CAPS at the start becomes the category. Dates like nov 27, fri, tmrw or 12/5 are picked up anywhere in the line. <span class="kbd">Press N to open this panel, Esc to close it.</span></p>
+
+ <section id="previewWrap" hidden><h2>Ready to add</h2><ul class="list" id="preview"></ul></section>
+
+ </div>
+</aside>
+<button class="fab" id="fab" aria-controls="composer" aria-expanded="false"><span aria-hidden="true">+</span> Add</button>
 <div id="boom" aria-live="polite"></div>
 <div id="toast" role="status" hidden><span id="tmsg"></span><button class="link" id="tact" hidden>Undo</button></div>
 
@@ -240,18 +254,18 @@ SS trading cards need to make nov 27"></textarea></div>
 {
 // ---------- months ----------
 const MONTHS = [
-  { n: 'January',   accent: '#8c2f45', tint: '#f1d3da', art: 'snow' },
-  { n: 'February',  accent: '#a3476d', tint: '#f4d6e2', art: 'heart' },
-  { n: 'March',     accent: '#4f7d5c', tint: '#d9eadb', art: 'clover' },
-  { n: 'April',     accent: '#4b5fa6', tint: '#dbe1f6', art: 'tulip' },
-  { n: 'May',       accent: '#6f56a0', tint: '#e5ddf3', art: 'lemon' },
-  { n: 'June',      accent: '#b03a3e', tint: '#f6d6d4', art: 'strawberry' },
-  { n: 'July',      accent: '#22698c', tint: '#d3e9f2', art: 'shell' },
-  { n: 'August',    accent: '#8f6b0c', tint: '#f6e6b4', art: 'sun' },
-  { n: 'September', accent: '#b25a22', tint: '#f8dfcb', art: 'apple' },
-  { n: 'October',   accent: '#9b4a1c', tint: '#f1d9c6', art: 'leaf' },
-  { n: 'November',  accent: '#5f7a1c', tint: '#e4efbf', art: 'acorn' },
-  { n: 'December',  accent: '#2d7397', tint: '#d8eef8', art: 'pine' },
+  { n: 'January',   accent: '#8c2f45', tint: '#f1d3da' },
+  { n: 'February',  accent: '#a3476d', tint: '#f4d6e2' },
+  { n: 'March',     accent: '#4f7d5c', tint: '#d9eadb' },
+  { n: 'April',     accent: '#4b5fa6', tint: '#dbe1f6' },
+  { n: 'May',       accent: '#6f56a0', tint: '#e5ddf3' },
+  { n: 'June',      accent: '#b03a3e', tint: '#f6d6d4' },
+  { n: 'July',      accent: '#22698c', tint: '#d3e9f2' },
+  { n: 'August',    accent: '#8f6b0c', tint: '#f6e6b4' },
+  { n: 'September', accent: '#b25a22', tint: '#f8dfcb' },
+  { n: 'October',   accent: '#9b4a1c', tint: '#f1d9c6' },
+  { n: 'November',  accent: '#5f7a1c', tint: '#e4efbf' },
+  { n: 'December',  accent: '#2d7397', tint: '#d8eef8' },
 ];
 const BASE = [{ id: 'grocery', name: 'Grocery' }, { id: 'finals', name: 'Finals study' }, { id: 'home', name: 'Home' }, { id: 'school', name: 'School' }];
 const DEF = { progressColor: '', pattern: 'auto', extraLists: [] };
@@ -331,7 +345,6 @@ function theme() {
   r.setProperty('--pc', settings.progressColor || 'var(--accent)');
   document.body.dataset.pat = settings.pattern === 'auto' ? (m % 2 ? 'grid' : 'stripes') : settings.pattern;
   $('month').textContent = T.n + (view.month === 'auto' ? '' : ' (preview)');
-  $('brandArt').innerHTML = `<use href="#d-${T.art}"/>`;
   return T;
 }
 
@@ -350,7 +363,7 @@ const catKey = i => (i.cat || '').toUpperCase();
 const note = $('note');
 note.value = store.get('bbb-draft', '');
 function parsedLines() {
-  const list = view.list === 'mix' ? ($('addTo').value || 'school') : view.list;
+  const list = $('addTo').value || (view.list === 'mix' ? 'school' : view.list);
   return note.value.split('\n').map(l => parseItem(l, { list })).filter(Boolean);
 }
 function renderPreview() {
@@ -362,7 +375,6 @@ function renderPreview() {
     const bits = [];
     if (i.due) bits.push(`Due <b>${esc(fmtDue(i).label)}</b>`);
     if (i.cat) bits.push(`Category <b>${esc(prettyCat(i.cat))}</b>`);
-    if (view.list === 'mix') bits.push(`List <b>${esc(listName($('addTo').value))}</b>`);
     if (i.notes) bits.push(`Note <b>${esc(i.notes)}</b>`);
     return `<li class="pv"><div class="t">${esc(i.text)}</div>${bits.length ? `<div class="d">${bits.join(' &nbsp;&middot;&nbsp; ')}</div>` : '<div class="d">No due date</div>'}</li>`;
   }).join('');
@@ -374,9 +386,12 @@ $('add').addEventListener('click', addAll);
 $('addTo').addEventListener('change', renderPreview);
 function addAll() {
   const p = parsedLines(); if (!p.length) return;
-  const list = view.list === 'mix' ? ($('addTo').value || 'school') : view.list;
+  const list = $('addTo').value || (view.list === 'mix' ? 'school' : view.list);
   p.forEach((x, k) => { const it = { id: uid(), text: x.text, cat: x.cat, due: x.due, time: x.time, notes: x.notes, list, done: false, doneAt: 0, created: Date.now() + k }; items.set(it.id, it); push(it.id); });
-  note.value = ''; store.set('bbb-draft', ''); grow(); render();
+  note.value = ''; store.set('bbb-draft', ''); grow();
+  if (list !== view.list && view.list !== 'mix') toast(`Added to ${listName(list)}`);
+  render();
+  if (!wide()) closeComposer();
 }
 
 // ---------- list view ----------
@@ -423,10 +438,9 @@ function render(fromSync) {
   const mix = view.list === 'mix';
   $('mixbar').hidden = !mix;
   if (mix) $('mixbar').innerHTML = 'Showing ' + lists().map(l => `<button class="chip" data-mix="${esc(l.id)}" aria-pressed="${view.mix.has(l.id)}">${esc(l.name)}</button>`).join('');
-  $('addTo').hidden = !mix;
   const prevTo = $('addTo').value;
   $('addTo').innerHTML = lists().map(l => `<option value="${esc(l.id)}">Add to ${esc(l.name)}</option>`).join('');
-  if (prevTo) $('addTo').value = prevTo;
+  $('addTo').value = mix ? (lists().some(l => l.id === prevTo) ? prevTo : 'school') : view.list;
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === view.mode));
   progress(); renderPreview();
 
@@ -444,8 +458,8 @@ function render(fromSync) {
   const act = shown.filter(i => !i.done).sort(byDue), done = shown.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
   let h = '';
   if (!shown.length) {
-    h = scope.length ? `<div class="empty"><svg aria-hidden="true"><use href="#d-${T.art}"/></svg>Nothing matches these filters. <button class="link" data-clear>Clear filters</button></div>`
-      : `<div class="empty"><svg aria-hidden="true"><use href="#d-${T.art}"/></svg>Nothing on ${esc(mix ? 'these lists' : listName(view.list))} yet.<br>Try <code>CHEM finish lab report fri</code> in the note above.</div>`;
+    h = scope.length ? `<div class="empty">Nothing matches these filters. <button class="link" data-clear>Clear filters</button></div>`
+      : `<div class="empty">Nothing on ${esc(mix ? 'these lists' : listName(view.list))} yet.<br><button class="link" data-open>Add something</button></div>`;
   } else {
     const groups = new Map();
     for (const i of act) {
@@ -459,7 +473,7 @@ function render(fromSync) {
       const g = groups.get(k);
       h += `<h3 class="gh"><span${g.c ? ` class="mk" style="--c:${g.c}"` : ''}>${esc(g.label)}</span><span class="n">${g.list.length}</span></h3><ul class="list">${g.list.map(row).join('')}</ul>`;
     }
-    if (!act.length) h += `<div class="empty" style="padding:20px"><svg aria-hidden="true"><use href="#d-${T.art}"/></svg>All done here.</div>`;
+    if (!act.length) h += `<div class="empty" style="padding:20px">All done here.</div>`;
     if (done.length) h += `<h2 class="dh"><span>Done (${done.length})</span><button class="link" data-cleardone>Clear done</button></h2><ul class="list">${done.map(row).join('')}</ul>`;
   }
   $('board').innerHTML = h;
@@ -491,6 +505,7 @@ let rT;
 $('board').addEventListener('click', e => {
   const t = e.target;
   if (t.closest('[data-clear]')) { view.cats.clear(); view.due = 'all'; render(); return; }
+  if (t.closest('[data-open]')) { openComposer(); return; }
   if (t.closest('[data-cleardone]')) {
     const gone = [...items.values()].filter(i => inScope(i) && i.done);
     gone.forEach(i => { items.delete(i.id); push(i.id); }); render();
@@ -521,6 +536,34 @@ $('board').addEventListener('submit', e => {
   render();
 });
 $('board').addEventListener('keydown', e => { if (e.key === 'Escape' && editing) { editing = null; render(); } });
+// ---------- side panel ----------
+const wide = () => matchMedia('(min-width: 900px)').matches;
+function openComposer() {
+  $('composer').classList.add('open'); $('composer').setAttribute('aria-hidden', 'false');
+  $('fab').setAttribute('aria-expanded', 'true'); $('scrim').hidden = wide();
+  store.set('bbb-panel', true); setTimeout(() => note.focus(), 60);
+}
+function closeComposer() {
+  $('composer').classList.remove('open'); $('composer').setAttribute('aria-hidden', 'true');
+  $('fab').setAttribute('aria-expanded', 'false'); $('scrim').hidden = true;
+  store.set('bbb-panel', false);
+  if (document.activeElement && $('composer').contains(document.activeElement)) $('fab').focus();
+}
+$('fab').onclick = openComposer;
+$('closeC').onclick = closeComposer;
+$('scrim').onclick = closeComposer;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('composer').classList.contains('open') && !editing) { closeComposer(); return; }
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if (!typing && (e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); openComposer(); }
+});
+// on a wide screen, tucking the panel away when you click back into the list
+document.addEventListener('pointerdown', e => {
+  if (!$('composer').classList.contains('open') || $('composer').contains(e.target) || $('fab').contains(e.target)) return;
+  if (wide() && !note.value.trim() && e.target.closest('main')) closeComposer();
+});
+addEventListener('resize', () => { if ($('composer').classList.contains('open')) $('scrim').hidden = wide(); });
+
 function goTab(id) { view.list = id; view.cats.clear(); editing = null; saveUi(); render(); const at = document.querySelector('.tab[aria-selected=true]'); at && at.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
 $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) goTab(b.dataset.tab); });
 $('tabs').addEventListener('keydown', e => {
@@ -614,6 +657,7 @@ setInterval(() => {
 readLink();
 setSync(connected() ? 'Loading...' : 'This device only');
 grow(); render(); pull();
+if (wide() && (store.get('bbb-panel', false) || note.value.trim())) openComposer();
 }
 </script>
 </body>
