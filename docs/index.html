@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Boom Boom Bam</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="To do">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='6' width='52' height='52' rx='12' fill='%235f7a1c'/%3E%3Cpath d='M19 33l9 9 17-20' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%235f7a1c'/%3E%3Cpath d='M19 33l9 9 17-20' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm, grown-up planner. Same family as Quick Add.
+   IDEA: a well-kept paper planner whose ink colour changes with the month
+   PICTURE: the list itself, white cards on a faintly ruled page, one ink sketch per month
+   COLOUR and TYPE: cool paper grey, month accent (peridot Nov, ice blue Dec), Crimson Text
+   LAYOUT: one column; note to type into, preview, then the list */
+:root {
+  --bg: #eef0f3; --text: #1d2330; --muted: #677084; --border: #dfe3ea; --card: #ffffff;
+  --accent: #5f7a1c; --tint: #e4efbf; --pc: var(--accent);
+  --note-line: color-mix(in srgb, var(--accent) 22%, transparent);
+  --pat: color-mix(in srgb, var(--accent) 9%, transparent);
+  --ink: var(--accent); --chip-text: #1d2330; --err: #b42318;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]) {
+    --bg: #12151c; --text: #e7eaf0; --muted: #98a1b3; --border: #2d3442; --card: #1b2029;
+    --ink: color-mix(in srgb, var(--accent) 50%, #fff); --pat: color-mix(in srgb, var(--accent) 14%, transparent);
+    --note-line: color-mix(in srgb, var(--accent) 35%, transparent); --err: #ff8a80; color-scheme: dark;
+  }
+}
+:root[data-theme=dark] {
+  --bg: #12151c; --text: #e7eaf0; --muted: #98a1b3; --border: #2d3442; --card: #1b2029;
+  --ink: color-mix(in srgb, var(--accent) 50%, #fff); --pat: color-mix(in srgb, var(--accent) 14%, transparent);
+  --note-line: color-mix(in srgb, var(--accent) 35%, transparent); --err: #ff8a80; color-scheme: dark;
+}
+* { box-sizing: border-box; min-width: 0; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background-color: var(--bg); color: var(--text);
+  font: 12pt/1.4 "Crimson Text", Georgia, "Times New Roman", serif; min-height: 100vh;
+}
+body[data-pat=stripes] { background-image: repeating-linear-gradient(135deg, var(--pat) 0 1px, transparent 1px 11px); }
+body[data-pat=grid] { background-image: linear-gradient(var(--pat) 1px, transparent 1px), linear-gradient(90deg, var(--pat) 1px, transparent 1px); background-size: 22px 22px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+main { max-width: 640px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px 96px; }
+
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 2px 10px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand svg { width: 40px; height: 40px; color: var(--ink); flex: none; }
+h1 { font-size: 17pt; margin: 0; line-height: 1.1; }
+.month { font-size: 10pt; color: var(--muted); font-style: italic; }
+.hr { display: flex; align-items: center; gap: 10px; }
+#sync { font-size: 10pt; color: var(--muted); text-align: right; }
+.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; font-size: 11pt; font-weight: 600; min-height: 38px; }
+.ghost[aria-expanded=true] { color: var(--ink); border-color: var(--ink); }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.card + .card { margin-top: 10px; }
+.card h3 { margin: 0 0 6px; font-size: 12pt; }
+.card p { margin: 0 0 10px; color: var(--muted); font-size: 11pt; }
+.field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.field:first-of-type { border-top: 0; }
+.field label { font-size: 11pt; }
+.field select, .field input[type=text], .field input[type=url] { font-size: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; min-height: 38px; }
+.field input[type=color] { width: 48px; height: 34px; border: 1px solid var(--border); border-radius: 8px; background: none; padding: 2px; }
+.stackf { display: grid; gap: 4px; padding: 6px 0; }
+.stackf label { font-size: 10pt; color: var(--muted); }
+.stackf input { font-size: 16px; width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; }
+.solid { background: var(--ink); color: var(--card); border: 1px solid var(--ink); border-radius: 10px; padding: 9px 14px; font-weight: 700; font-size: 11pt; min-height: 40px; }
+.solid:disabled { opacity: .45; cursor: default; }
+.link { background: none; border: 0; color: var(--ink); font-weight: 700; font-size: 10.5pt; padding: 4px 2px; }
+.msg { font-size: 10pt; color: var(--err); margin-top: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 4px 12px; font-size: 10.5pt; font-weight: 600; min-height: 32px; }
+.chip[aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: var(--card); }
+
+.tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--border); margin: 6px 0 12px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px 7px; font-size: 12pt; font-weight: 600; color: var(--muted); margin-bottom: -1px; min-height: 42px; }
+.tab[aria-selected=true] { color: var(--text); border-bottom-color: var(--ink); }
+.mixbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: -4px 0 12px; font-size: 10.5pt; color: var(--muted); }
+
+.note { background: color-mix(in srgb, var(--tint) 70%, var(--card)); border-radius: 4px 4px 4px 18px; padding: 10px 14px 12px; box-shadow: 0 6px 18px rgb(20 30 50 / .10); }
+:root[data-theme=dark] .note { background: color-mix(in srgb, var(--accent) 22%, var(--card)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .note { background: color-mix(in srgb, var(--accent) 22%, var(--card)); } }
+.note textarea {
+  display: block; width: 100%; min-height: 78px; resize: none; border: 0; outline: 0; padding: 0;
+  background: transparent repeating-linear-gradient(to bottom, transparent 0 25px, var(--note-line) 25px 26px);
+  background-attachment: local; font-size: 16px; line-height: 26px; color: var(--text);
+}
+.note textarea::placeholder { color: var(--text); opacity: .42; }
+.bar { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.bar .solid { flex: 1; }
+.hint { font-size: 10pt; color: var(--muted); margin: 6px 2px 0; }
+
+h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 18px 2px 6px; font-weight: 700; }
+.list { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.list > li { border-bottom: 1px solid var(--border); }
+.list > li:last-child { border-bottom: 0; }
+.pv { padding: 9px 14px; }
+.pv .t { font-weight: 700; overflow-wrap: anywhere; }
+.pv .d { font-size: 10.5pt; color: var(--muted); }
+.pv .d b { color: var(--text); font-weight: 600; }
+
+.prog { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; margin: 18px 2px 4px; }
+.track { height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 18%, transparent); overflow: hidden; }
+.fill { height: 100%; width: 0; background: var(--pc); border-radius: 999px; transition: width .35s ease; }
+.plabel { font-size: 10.5pt; color: var(--muted); white-space: nowrap; }
+.tools { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: none; padding: 6px 12px; font-size: 11pt; font-weight: 600; color: var(--muted); min-height: 36px; }
+.seg button[aria-pressed=true] { background: var(--ink); color: var(--card); }
+.tools .ghost { margin-left: auto; }
+.tools .ghost b { background: var(--ink); color: var(--card); border-radius: 999px; padding: 0 7px; margin-left: 6px; font-size: 9pt; }
+#fpanel { margin: 8px 0; display: grid; gap: 10px; }
+#fpanel h4 { margin: 0 0 6px; font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+.gh { display: flex; align-items: baseline; gap: 8px; margin: 18px 2px 6px; font-size: 13pt; font-weight: 700; }
+.gh .n { font-size: 10pt; color: var(--muted); font-weight: 400; }
+.gh .mk { background: var(--c); color: var(--chip-text); padding: 0 7px; border-radius: 5px; }
+.it { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 10px 10px 10px 14px; }
+.ck { width: 22px; height: 22px; margin-top: 2px; border: 1.5px solid color-mix(in srgb, var(--ink) 75%, var(--muted)); border-radius: 6px; background: var(--card); padding: 0; display: grid; place-items: center; }
+.ck svg { width: 15px; height: 15px; fill: none; stroke: var(--card); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.ck::before { content: ""; position: absolute; }
+.it .t { font-weight: 600; overflow-wrap: anywhere; }
+.it .t b { font-weight: 700; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; font-size: 10.5pt; color: var(--muted); align-items: center; }
+.due { background: var(--c); color: var(--chip-text); border-radius: 5px; padding: 0 7px; font-weight: 600; white-space: nowrap; }
+.due.over { box-shadow: inset 0 0 0 1.5px var(--err); }
+.edit { background: none; border: 0; color: var(--muted); font-size: 10.5pt; font-weight: 600; padding: 2px 4px; min-height: 32px; }
+.it.done .ck { background: var(--muted); border-color: var(--muted); }
+.it.done .ck svg { opacity: 1; }
+.it.done .t { color: var(--muted); text-decoration: line-through; font-weight: 400; }
+.it.done .due { background: transparent; color: var(--muted); box-shadow: none; padding: 0; }
+.ef { grid-column: 1 / -1; display: grid; gap: 8px; }
+.ef input, .ef select { font-size: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; min-height: 38px; }
+.ef .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ef .del { color: var(--err); margin-right: auto; }
+.dh { display: flex; justify-content: space-between; align-items: baseline; }
+.empty { text-align: center; padding: 34px 16px; color: var(--muted); }
+.empty svg { width: 56px; height: 56px; color: var(--ink); opacity: .8; display: block; margin: 0 auto 8px; }
+.empty code { font-family: inherit; background: var(--tint); color: var(--chip-text); padding: 0 6px; border-radius: 4px; }
+
+#boom {
+  position: fixed; left: 50%; bottom: max(26px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  background: var(--text); color: var(--card); border-radius: 999px; padding: 6px 26px 8px;
+  font-size: 22pt; font-style: italic; font-weight: 700; letter-spacing: .01em; pointer-events: none;
+  opacity: 0; z-index: 30; box-shadow: 0 10px 28px rgb(0 0 0 / .22);
+}
+#boom.on { animation: boom 1.25s ease forwards; }
+@keyframes boom { 0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.9); } 12% { opacity: 1; transform: translateX(-50%) scale(1.04); } 22% { transform: translateX(-50%) scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-4px); } }
+#toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-size: 11pt; display: flex; gap: 12px; align-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / .15); z-index: 31; max-width: 92vw; }
+@media (prefers-reduced-motion: reduce) { #boom.on { animation: boomrm 1.25s linear forwards; } @keyframes boomrm { 0%, 85% { opacity: 1; } 100% { opacity: 0; } } .fill { transition: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="d-snow" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v30M7 12.5l26 15M7 27.5l26-15M16 8l4 4 4-4M16 32l4-4 4 4M7.5 18l4.5 2.5-1 5M32.5 22l-4.5-2.5 1-5"/></g></symbol>
+ <symbol id="d-heart" viewBox="0 0 40 40"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M20 33S7 25 7 15.5A6.5 6.5 0 0 1 20 13a6.5 6.5 0 0 1 13 2.5C33 25 20 33 20 33z"/></symbol>
+ <symbol id="d-clover" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 20c3 6 4 10 8 15"/><path d="M20 20c-6-1-9-4-9-7a3.5 3.5 0 0 1 7-1M20 20c1-6 4-9 7-9a3.5 3.5 0 0 1 1 7M20 20c6 1 9 4 9 7a3.5 3.5 0 0 1-7 1M20 20c-1 6-4 9-7 9a3.5 3.5 0 0 1-1-7"/></g></symbol>
+ <symbol id="d-tulip" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 22v15M20 31c-4-1-7-4-7-8M20 33c4-1 6-3 7-7"/><path d="M12 9l4 4 4-6 4 6 4-4v9a8 8 0 0 1-16 0z"/></g></symbol>
+ <symbol id="d-lemon" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M6 23c0-7 7-12 14-12s14 5 14 12-7 11-14 11S6 30 6 23z"/><path d="M21 11c2-4 6-6 11-5-1 4-6 6-11 5zM12 21c1-3 3-4 6-5"/></g></symbol>
+ <symbol id="d-strawberry" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 13c7 0 12 4 11 11-1 7-7 12-11 12S10 31 9 24c-1-7 4-11 11-11z"/><path d="M20 15l-7-4h5l-2-5 4 4 4-4-2 5h5z"/><path d="M15 21h.01M21 20h.01M26 23h.01M17 27h.01M23 29h.01M20 33h.01" stroke-width="2.2"/></g></symbol>
+ <symbol id="d-shell" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 34L5 18c3-8 9-11 15-11s12 3 15 11z"/><path d="M20 34L12 10M20 34V7M20 34l8-24"/></g></symbol>
+ <symbol id="d-sun" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="20" cy="20" r="7.5"/><path d="M20 4v5M20 31v5M4 20h5M31 20h5M8.5 8.5l3.5 3.5M28 28l3.5 3.5M8.5 31.5l3.5-3.5M28 12l3.5-3.5"/></g></symbol>
+ <symbol id="d-apple" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 14c-3-2-11-2-12 6s4 15 8 15c2 0 3-1 4-1s2 1 4 1c4 0 9-7 8-15s-9-8-12-6z"/><path d="M20 14c0-3 1-5 3-7M22 10c2-3 6-4 9-2-2 3-6 4-9 2z"/></g></symbol>
+ <symbol id="d-leaf" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M7 33C7 17 17 7 34 7c0 16-10 26-27 26z"/><path d="M7 33L26 14M16 24l-1-6M21 19l6 1"/></g></symbol>
+ <symbol id="d-acorn" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M11 19h18c0 9-4 15-9 17-5-2-9-8-9-17z"/><path d="M8.5 20c0-6 5-10 11.5-10s11.5 4 11.5 10z"/><path d="M20 10V5M13 15l3 3M20 13v4M27 15l-3 3"/></g></symbol>
+ <symbol id="d-pine" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M20 4v32M20 10l-6-4M20 10l6-4M20 16l-8-5M20 16l8-5M20 22l-10-5M20 22l10-5M20 28l-11-5M20 28l11-5"/></g></symbol>
+</svg>
+
+<main>
+ <header>
+  <div class="brand"><svg aria-hidden="true" id="brandArt"><use href="#d-acorn"/></svg><div><h1>To do</h1><div class="month" id="month"></div></div></div>
+  <div class="hr"><span id="sync">This device only</span><button class="ghost" id="gear" aria-expanded="false" aria-controls="settings">Settings</button></div>
+ </header>
+
+ <section id="settings" hidden>
+  <div class="card">
+   <h3>Sync between devices</h3>
+   <p id="syncText">Connect your Google Sheet script so your phone, laptop and widget all see the same list.</p>
+   <div id="connectForm">
+    <div class="stackf"><label for="sUrl">Web app URL (Apps Script, Deploy, Manage deployments), or your private link</label><input id="sUrl" type="url" placeholder="https://script.google.com/macros/s/AKfy.../exec" autocomplete="off" spellcheck="false"></div>
+    <div class="stackf"><label for="sKey">Key (run getMyKey in Apps Script and copy it from the log)</label><input id="sKey" type="text" autocomplete="off" spellcheck="false"></div>
+    <button class="solid" id="sGo" style="width:100%;margin-top:8px">Connect</button>
+    <div class="msg" id="sMsg"></div>
+   </div>
+   <div id="connected" hidden>
+    <div class="chips"><button class="chip" id="copyLink">Copy private link</button><button class="chip" id="disconnect">Disconnect this device</button></div>
+    <p style="margin:8px 0 0">Open the private link on your phone once and it stays connected. It works like a password, so keep it to yourself.</p>
+   </div>
+  </div>
+  <div class="card">
+   <h3>Look</h3>
+   <div class="field"><label for="pcol">Progress bar colour</label><span><input type="color" id="pcol"> <button class="link" id="pcolReset">Use month colour</button></span></div>
+   <div class="field"><label for="pat">Background</label><select id="pat"><option value="auto">Changes monthly</option><option value="stripes">Pinstripe</option><option value="grid">Grid</option><option value="none">Plain</option></select></div>
+   <div class="field"><label for="prev">Preview a month</label><select id="prev"></select></div>
+  </div>
+  <div class="card">
+   <h3>Lists</h3>
+   <div class="field"><label for="newList">Add a list</label><span style="display:flex;gap:6px"><input type="text" id="newList" placeholder="e.g. Work"><button class="solid" id="addList">Add</button></span></div>
+   <div class="chips" id="extraLists"></div>
+  </div>
+ </section>
+
+ <nav class="tabs" id="tabs" role="tablist" aria-label="Lists"></nav>
+ <div class="mixbar" id="mixbar" hidden></div>
+
+ <div class="note"><textarea id="note" rows="3" spellcheck="true" aria-label="Add items, one per line" placeholder="Type it however it comes out, one per line
+Career Mentorship sign up -- nov 21
+SS trading cards need to make nov 27"></textarea></div>
+ <div class="bar"><button class="solid" id="add" disabled>Add</button><select id="addTo" aria-label="Add to list" class="ghost" hidden></select></div>
+ <p class="hint">ALL CAPS at the start becomes the category. Dates like nov 27, fri, tmrw or 12/5 are picked up anywhere in the line.</p>
+
+ <section id="previewWrap" hidden><h2>Ready to add</h2><ul class="list" id="preview"></ul></section>
+
+ <div class="prog"><div class="track" role="progressbar" id="track" aria-valuemin="0" aria-valuemax="100" aria-label="Progress"><div class="fill" id="fill"></div></div><div class="plabel" id="plabel"></div></div>
+ <div class="tools">
+  <div class="seg" role="group" aria-label="Sort by"><button data-mode="cat">By category</button><button data-mode="date">By due date</button></div>
+  <button class="ghost" id="fbtn" aria-expanded="false">Filter</button>
+ </div>
+ <div class="card" id="fpanel" hidden></div>
+ <div id="board"></div>
+</main>
+<div id="boom" aria-live="polite"></div>
+<div id="toast" role="status" hidden><span id="tmsg"></span><button class="link" id="tact" hidden>Undo</button></div>
+
+<script src="parse.js"></script>
+<script>
+{
+// ---------- months ----------
+const MONTHS = [
+  { n: 'January',   accent: '#8c2f45', tint: '#f1d3da', art: 'snow' },
+  { n: 'February',  accent: '#a3476d', tint: '#f4d6e2', art: 'heart' },
+  { n: 'March',     accent: '#4f7d5c', tint: '#d9eadb', art: 'clover' },
+  { n: 'April',     accent: '#4b5fa6', tint: '#dbe1f6', art: 'tulip' },
+  { n: 'May',       accent: '#6f56a0', tint: '#e5ddf3', art: 'lemon' },
+  { n: 'June',      accent: '#b03a3e', tint: '#f6d6d4', art: 'strawberry' },
+  { n: 'July',      accent: '#22698c', tint: '#d3e9f2', art: 'shell' },
+  { n: 'August',    accent: '#8f6b0c', tint: '#f6e6b4', art: 'sun' },
+  { n: 'September', accent: '#b25a22', tint: '#f8dfcb', art: 'apple' },
+  { n: 'October',   accent: '#9b4a1c', tint: '#f1d9c6', art: 'leaf' },
+  { n: 'November',  accent: '#5f7a1c', tint: '#e4efbf', art: 'acorn' },
+  { n: 'December',  accent: '#2d7397', tint: '#d8eef8', art: 'pine' },
+];
+const BASE = [{ id: 'grocery', name: 'Grocery' }, { id: 'finals', name: 'Finals study' }, { id: 'home', name: 'Home' }, { id: 'school', name: 'School' }];
+const DEF = { progressColor: '', pattern: 'auto', extraLists: [] };
+const { parseItem, prettyCat } = window.BBB;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const days = s => Math.round((pd(s) - today()) / 864e5);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+
+// ---------- state ----------
+let items = new Map((store.get('bbb-items', [])).map(i => [i.id, i]));
+let settings = { ...DEF, ...store.get('bbb-settings', {}) };
+let pending = new Set(store.get('bbb-pending', []));          // ids changed here and not yet on the server
+const ui = store.get('bbb-ui', {});
+const view = { list: ui.list || 'school', mode: ui.mode || 'cat', mix: new Set(ui.mix || ['finals', 'school']), cats: new Set(), due: 'all', month: 'auto' };
+let editing = null, deferred = false, fOpen = false;
+const lists = () => [...BASE, ...(settings.extraLists || [])];
+const listName = id => (lists().find(l => l.id === id) || { name: 'List' }).name;
+function cache() { store.set('bbb-items', [...items.values()]); store.set('bbb-settings', settings); store.set('bbb-pending', [...pending]); }
+function saveUi() { store.set('bbb-ui', { list: view.list, mode: view.mode, mix: [...view.mix] }); }
+
+// ---------- sync (same private-link idea as Quick Add) ----------
+const link = { s: '', k: '' };
+function readLink() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('s') && h.get('k')) { link.s = h.get('s'); link.k = h.get('k'); store.set('bbb-link', link); return true; }
+  Object.assign(link, store.get('bbb-link', {}));
+  if (!link.s || !link.k) return false;
+  try { history.replaceState(null, '', '#s=' + encodeURIComponent(link.s) + '&k=' + encodeURIComponent(link.k)); } catch (e) {}
+  return true;
+}
+const connected = () => !!(link.s && link.k);
+function run(fn, ...args) {
+  if (!connected()) return Promise.reject(new Error('not connected'));
+  return fetch('https://script.google.com/macros/s/' + encodeURIComponent(link.s) + '/exec', {
+    method: 'POST', body: JSON.stringify({ key: link.k, fn, args }), credentials: 'omit',
+  }).then(r => r.json()).then(d => d.ok ? d.result : Promise.reject(new Error(d.error)));
+}
+function setSync(t) { $('sync').textContent = t; }
+const Q = {};
+function push(id) {
+  pending.add(id); cache();
+  if (!connected()) return;
+  setSync('Saving...');
+  Q[id] = (Q[id] || Promise.resolve()).then(() => {
+    const it = items.get(id);
+    return it ? run('put', it) : run('del', id);
+  }).then(() => { pending.delete(id); cache(); if (!Object.keys(Q).some(k => pending.has(k))) setSync('Saved'); })
+    .catch(() => setSync('Offline, will retry'));
+}
+function pushSettings() { cache(); if (connected()) run('setSettings', settings).catch(() => setSync('Offline, will retry')); }
+let pulling = false;
+function pull() {
+  if (!connected() || pulling) return;
+  pulling = true;
+  run('load').then(res => {
+    const m = new Map((res.items || []).map(i => [i.id, i]));
+    for (const id of pending) { if (items.has(id)) m.set(id, items.get(id)); else m.delete(id); }
+    items = m;
+    if (res.settings) settings = { ...DEF, ...res.settings };
+    cache(); render(true);
+    [...pending].forEach(push);
+    if (!pending.size) setSync('Saved');
+  }).catch(e => setSync(/key/i.test(e.message) ? 'Key no longer works' : 'Offline')).finally(() => { pulling = false; });
+}
+
+// ---------- theme ----------
+function theme() {
+  const m = view.month === 'auto' ? new Date().getMonth() : +view.month, T = MONTHS[m], r = document.documentElement.style;
+  r.setProperty('--accent', T.accent); r.setProperty('--tint', T.tint);
+  r.setProperty('--pc', settings.progressColor || 'var(--accent)');
+  document.body.dataset.pat = settings.pattern === 'auto' ? (m % 2 ? 'grid' : 'stripes') : settings.pattern;
+  $('month').textContent = T.n + (view.month === 'auto' ? '' : ' (preview)');
+  $('brandArt').innerHTML = `<use href="#d-${T.art}"/>`;
+  return T;
+}
+
+// ---------- formatting ----------
+function fmtTime(hm) { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + (m ? ':' + pad(m) : '') + (h < 12 ? 'am' : 'pm'); }
+function fmtDue(i) {
+  const n = days(i.due), d = pd(i.due);
+  const opts = { weekday: 'short', month: 'short', day: 'numeric' };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+  const rel = n < 0 ? (n === -1 ? 'yesterday' : -n + ' days late') : n === 0 ? 'today' : n === 1 ? 'tomorrow' : n < 7 ? 'this ' + d.toLocaleDateString(undefined, { weekday: 'long' }) : 'in ' + n + ' days';
+  return { label: d.toLocaleDateString(undefined, opts) + (i.time ? ', ' + fmtTime(i.time) : ''), rel, over: n < 0, m: d.getMonth() };
+}
+const catKey = i => (i.cat || '').toUpperCase();
+
+// ---------- preview of what's typed ----------
+const note = $('note');
+note.value = store.get('bbb-draft', '');
+function parsedLines() {
+  const list = view.list === 'mix' ? ($('addTo').value || 'school') : view.list;
+  return note.value.split('\n').map(l => parseItem(l, { list })).filter(Boolean);
+}
+function renderPreview() {
+  const p = parsedLines();
+  $('add').disabled = !p.length;
+  $('add').textContent = p.length > 1 ? `Add ${p.length} items` : 'Add';
+  $('previewWrap').hidden = !p.length;
+  $('preview').innerHTML = p.map(i => {
+    const bits = [];
+    if (i.due) bits.push(`Due <b>${esc(fmtDue(i).label)}</b>`);
+    if (i.cat) bits.push(`Category <b>${esc(prettyCat(i.cat))}</b>`);
+    if (view.list === 'mix') bits.push(`List <b>${esc(listName($('addTo').value))}</b>`);
+    if (i.notes) bits.push(`Note <b>${esc(i.notes)}</b>`);
+    return `<li class="pv"><div class="t">${esc(i.text)}</div>${bits.length ? `<div class="d">${bits.join(' &nbsp;&middot;&nbsp; ')}</div>` : '<div class="d">No due date</div>'}</li>`;
+  }).join('');
+}
+function grow() { note.style.height = 'auto'; note.style.height = Math.max(78, note.scrollHeight) + 'px'; }
+note.addEventListener('input', () => { store.set('bbb-draft', note.value); grow(); renderPreview(); });
+note.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addAll(); } });
+$('add').addEventListener('click', addAll);
+$('addTo').addEventListener('change', renderPreview);
+function addAll() {
+  const p = parsedLines(); if (!p.length) return;
+  const list = view.list === 'mix' ? ($('addTo').value || 'school') : view.list;
+  p.forEach((x, k) => { const it = { id: uid(), text: x.text, cat: x.cat, due: x.due, time: x.time, notes: x.notes, list, done: false, doneAt: 0, created: Date.now() + k }; items.set(it.id, it); push(it.id); });
+  note.value = ''; store.set('bbb-draft', ''); grow(); render();
+}
+
+// ---------- list view ----------
+const inScope = i => view.list === 'mix' ? view.mix.has(i.list) : i.list === view.list;
+function dueOk(i) {
+  const f = view.due; if (f === 'all') return true; if (f === 'none') return !i.due; if (!i.due) return false;
+  const n = days(i.due);
+  if (f === 'over') return n < 0; if (f === 'week') return n >= 0 && n < 7;
+  if (f === 'month') { const d = pd(i.due), t = new Date(); return d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear(); }
+  return true;
+}
+const byDue = (a, b) => (a.due ? 0 : 1) - (b.due ? 0 : 1) || (a.due || '').localeCompare(b.due || '') || (a.time || '99').localeCompare(b.time || '99') || catKey(a).localeCompare(catKey(b)) || a.created - b.created;
+function bucket(i) {
+  if (!i.due) return ['No due date', '~'];
+  const n = days(i.due);
+  if (n < 0) return ['Overdue', '0']; if (n === 0) return ['Today', '1']; if (n === 1) return ['Tomorrow', '2']; if (n < 7) return ['This week', '3'];
+  const d = pd(i.due);
+  return [d.toLocaleDateString(undefined, { month: 'long', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }), '4' + i.due.slice(0, 7), d.getMonth()];
+}
+function row(i) {
+  if (editing === i.id) {
+    const raw = (i.cat ? i.cat + ' ' : '') + i.text;
+    return `<li class="it" data-id="${esc(i.id)}"><form class="ef"><input name="t" value="${esc(raw)}" aria-label="Item"><div class="row"><input type="date" name="d" value="${esc(i.due || '')}" aria-label="Due date"><input type="time" name="tm" value="${esc(i.time || '')}" aria-label="Time"><select name="l" aria-label="List">${lists().map(l => `<option value="${esc(l.id)}"${l.id === i.list ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div><div class="row"><button type="button" class="link del" data-act="del">Delete</button><button type="button" class="ghost" data-act="cancel">Cancel</button><button class="solid">Save</button></div></form></li>`;
+  }
+  const d = i.due ? fmtDue(i) : null;
+  const meta = [];
+  if (d) meta.push(`<span class="due${d.over && !i.done ? ' over' : ''}" style="--c:${MONTHS[d.m].tint}">${esc(d.label)}</span><span>${esc(d.rel)}</span>`);
+  if (view.list === 'mix') meta.push(`<span>${esc(listName(i.list))}</span>`);
+  if (i.notes) meta.push(`<span>${esc(i.notes)}</span>`);
+  const cat = (view.mode !== 'cat' || i.done) && i.cat ? `<b>${esc(prettyCat(i.cat))}</b> &middot; ` : '';
+  return `<li class="it${i.done ? ' done' : ''}" data-id="${esc(i.id)}"><button class="ck" role="checkbox" aria-checked="${!!i.done}" aria-label="${i.done ? 'Mark not done' : 'Mark done'}: ${esc(i.text)}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><div><div class="t">${cat}${esc(i.text)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div><button class="edit" aria-label="Edit ${esc(i.text)}">Edit</button></li>`;
+}
+function progress() {
+  const scope = [...items.values()].filter(inScope), t = scope.length, d = scope.filter(i => i.done).length, p = t ? Math.round(d / t * 100) : 0;
+  $('fill').style.width = p + '%'; $('track').setAttribute('aria-valuenow', p);
+  $('plabel').textContent = t ? `${d} of ${t} done` : 'Nothing on this list yet';
+}
+function render(fromSync) {
+  if (fromSync && editing) { deferred = true; return; }
+  deferred = false;
+  const T = theme();
+  const tabs = [...lists(), { id: 'mix', name: 'Combined' }];
+  $('tabs').innerHTML = tabs.map(t => `<button class="tab" role="tab" data-tab="${esc(t.id)}" aria-selected="${t.id === view.list}">${esc(t.name)}</button>`).join('');
+  const mix = view.list === 'mix';
+  $('mixbar').hidden = !mix;
+  if (mix) $('mixbar').innerHTML = 'Showing ' + lists().map(l => `<button class="chip" data-mix="${esc(l.id)}" aria-pressed="${view.mix.has(l.id)}">${esc(l.name)}</button>`).join('');
+  $('addTo').hidden = !mix;
+  const prevTo = $('addTo').value;
+  $('addTo').innerHTML = lists().map(l => `<option value="${esc(l.id)}">Add to ${esc(l.name)}</option>`).join('');
+  if (prevTo) $('addTo').value = prevTo;
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === view.mode));
+  progress(); renderPreview();
+
+  const scope = [...items.values()].filter(inScope);
+  const cats = [...new Set(scope.map(catKey))].sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1) || a.localeCompare(b));
+  for (const c of [...view.cats]) if (!cats.includes(c)) view.cats.delete(c);
+  const nf = view.cats.size + (view.due !== 'all' ? 1 : 0);
+  $('fbtn').innerHTML = 'Filter' + (nf ? `<b>${nf}</b>` : '');
+  $('fbtn').setAttribute('aria-expanded', fOpen); $('fpanel').hidden = !fOpen;
+  if (fOpen) $('fpanel').innerHTML = `<div><h4>Category</h4><div class="chips">${cats.length ? cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${view.cats.has(c)}">${esc(c ? prettyCat(c) : 'No category')}</button>`).join('') : '<span class="plabel">No categories yet</span>'}</div></div>
+    <div><h4>Due</h4><div class="chips">${[['all', 'Any time'], ['over', 'Overdue'], ['week', 'Next 7 days'], ['month', 'This month'], ['none', 'No due date']].map(([k, v]) => `<button class="chip" data-due="${k}" aria-pressed="${view.due === k}">${v}</button>`).join('')}</div></div>
+    ${nf ? '<div><button class="link" data-clear>Clear filters</button></div>' : ''}`;
+
+  const shown = scope.filter(i => (!view.cats.size || view.cats.has(catKey(i))) && dueOk(i));
+  const act = shown.filter(i => !i.done).sort(byDue), done = shown.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+  let h = '';
+  if (!shown.length) {
+    h = scope.length ? `<div class="empty"><svg aria-hidden="true"><use href="#d-${T.art}"/></svg>Nothing matches these filters. <button class="link" data-clear>Clear filters</button></div>`
+      : `<div class="empty"><svg aria-hidden="true"><use href="#d-${T.art}"/></svg>Nothing on ${esc(mix ? 'these lists' : listName(view.list))} yet.<br>Try <code>CHEM finish lab report fri</code> in the note above.</div>`;
+  } else {
+    const groups = new Map();
+    for (const i of act) {
+      let key, label, c = null;
+      if (view.mode === 'cat') { key = catKey(i) || '~'; label = i.cat ? prettyCat(i.cat) : 'No category'; }
+      else { const b = bucket(i); label = b[0]; key = b[1]; if (b[2] != null) c = MONTHS[b[2]].tint; }
+      if (!groups.has(key)) groups.set(key, { label, c, list: [] });
+      groups.get(key).list.push(i);
+    }
+    for (const k of [...groups.keys()].sort()) {
+      const g = groups.get(k);
+      h += `<h3 class="gh"><span${g.c ? ` class="mk" style="--c:${g.c}"` : ''}>${esc(g.label)}</span><span class="n">${g.list.length}</span></h3><ul class="list">${g.list.map(row).join('')}</ul>`;
+    }
+    if (!act.length) h += `<div class="empty" style="padding:20px"><svg aria-hidden="true"><use href="#d-${T.art}"/></svg>All done here.</div>`;
+    if (done.length) h += `<h2 class="dh"><span>Done (${done.length})</span><button class="link" data-cleardone>Clear done</button></h2><ul class="list">${done.map(row).join('')}</ul>`;
+  }
+  $('board').innerHTML = h;
+  if (editing) { const inp = document.querySelector('.ef input[name=t]'); if (inp && document.activeElement !== inp) inp.focus(); }
+}
+
+// ---------- Boom, Boom, Bam ----------
+let boomCount = 0, hiddenAt = 0;
+const WORDS = ['Boom!', 'Boom!', 'Bam!'];
+function boom() {
+  const el = $('boom');
+  el.textContent = WORDS[boomCount++ % 3];
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+}
+// Every fresh open starts again at Boom. Coming back after a few minutes away counts as a fresh open.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (hiddenAt && Date.now() - hiddenAt > 5 * 60e3) boomCount = 0;
+  pull();
+});
+
+// ---------- toast ----------
+let tT, tFn;
+function toast(msg, undo) { $('tmsg').textContent = msg; tFn = undo; $('tact').hidden = !undo; $('toast').hidden = false; clearTimeout(tT); tT = setTimeout(() => $('toast').hidden = true, 5000); }
+$('tact').onclick = () => { tFn && tFn(); $('toast').hidden = true; };
+
+// ---------- events ----------
+let rT;
+$('board').addEventListener('click', e => {
+  const t = e.target;
+  if (t.closest('[data-clear]')) { view.cats.clear(); view.due = 'all'; render(); return; }
+  if (t.closest('[data-cleardone]')) {
+    const gone = [...items.values()].filter(i => inScope(i) && i.done);
+    gone.forEach(i => { items.delete(i.id); push(i.id); }); render();
+    toast(`Cleared ${gone.length} done`, () => { gone.forEach(i => { items.set(i.id, i); push(i.id); }); render(); }); return;
+  }
+  const li = t.closest('.it'); if (!li) return;
+  const id = li.dataset.id, it = items.get(id); if (!it) return;
+  const ckb = t.closest('.ck');
+  if (ckb) {
+    const nd = !it.done;
+    items.set(id, { ...it, done: nd, doneAt: nd ? Date.now() : 0 }); push(id);
+    li.classList.toggle('done', nd); ckb.setAttribute('aria-checked', nd);
+    if (nd) boom();
+    progress(); clearTimeout(rT); rT = setTimeout(() => render(), nd ? 650 : 150);
+    return;
+  }
+  if (t.closest('.edit')) { editing = id; render(); return; }
+  const a = t.closest('[data-act]');
+  if (a && a.dataset.act === 'cancel') { editing = null; render(); return; }
+  if (a && a.dataset.act === 'del') { editing = null; items.delete(id); push(id); render(); toast('Deleted', () => { items.set(id, it); push(id); render(); }); }
+});
+$('board').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target, id = f.closest('.it').dataset.id, it = items.get(id);
+  editing = null;
+  const p = parseItem(f.t.value, { list: f.l.value });
+  if (it && p) { items.set(id, { ...it, text: p.text, cat: p.cat, notes: p.notes || it.notes || '', due: f.d.value || p.due || '', time: f.tm.value || p.time || '', list: f.l.value }); push(id); }
+  render();
+});
+$('board').addEventListener('keydown', e => { if (e.key === 'Escape' && editing) { editing = null; render(); } });
+function goTab(id) { view.list = id; view.cats.clear(); editing = null; saveUi(); render(); const at = document.querySelector('.tab[aria-selected=true]'); at && at.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) goTab(b.dataset.tab); });
+$('tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const ids = [...lists().map(l => l.id), 'mix'], k = ids.indexOf(view.list);
+  goTab(ids[Math.min(ids.length - 1, Math.max(0, k + (e.key === 'ArrowRight' ? 1 : -1)))]);
+  document.querySelector('.tab[aria-selected=true]').focus();
+});
+let sx = 0, sy = 0;
+$('board').addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+$('board').addEventListener('touchend', e => {
+  if (editing) return;
+  const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  if (Math.abs(dx) > 70 && Math.abs(dx) > 2 * Math.abs(dy)) {
+    const ids = [...lists().map(l => l.id), 'mix'], k = ids.indexOf(view.list), nk = Math.min(ids.length - 1, Math.max(0, k + (dx < 0 ? 1 : -1)));
+    if (nk !== k) goTab(ids[nk]);
+  }
+}, { passive: true });
+$('mixbar').addEventListener('click', e => { const b = e.target.closest('[data-mix]'); if (!b) return; const id = b.dataset.mix; view.mix.has(id) ? view.mix.delete(id) : view.mix.add(id); saveUi(); render(); });
+document.querySelector('.seg').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) { view.mode = b.dataset.mode; saveUi(); render(); } });
+$('fbtn').onclick = () => { fOpen = !fOpen; render(); };
+$('fpanel').addEventListener('click', e => {
+  const t = e.target, c = t.closest('[data-cat]');
+  if (c) { const k = c.dataset.cat; view.cats.has(k) ? view.cats.delete(k) : view.cats.add(k); render(); return; }
+  const d = t.closest('[data-due]'); if (d) { view.due = d.dataset.due; render(); return; }
+  if (t.closest('[data-clear]')) { view.cats.clear(); view.due = 'all'; render(); }
+});
+
+// ---------- settings ----------
+$('prev').innerHTML = [['auto', 'This month'], ...MONTHS.map((m, k) => [String(k), m.n])].map(([v, n]) => `<option value="${v}">${n}</option>`).join('');
+function settingsUi() {
+  const T = MONTHS[view.month === 'auto' ? new Date().getMonth() : +view.month];
+  $('pcol').value = settings.progressColor || T.accent; $('pat').value = settings.pattern; $('prev').value = view.month;
+  $('extraLists').innerHTML = (settings.extraLists || []).map(l => `<button class="chip" data-rm="${esc(l.id)}" aria-label="Remove ${esc(l.name)}">${esc(l.name)} &times;</button>`).join('');
+  $('connectForm').hidden = connected(); $('connected').hidden = !connected();
+  $('syncText').textContent = connected() ? 'Connected. Changes here show up on your other devices and the widget.' : 'Connect your Google Sheet script so your phone, laptop and widget all see the same list.';
+}
+$('gear').onclick = () => { const s = $('settings'); s.hidden = !s.hidden; $('gear').setAttribute('aria-expanded', !s.hidden); settingsUi(); };
+$('pcol').addEventListener('input', e => { settings.progressColor = e.target.value; theme(); });
+$('pcol').addEventListener('change', pushSettings);
+$('pcolReset').onclick = () => { settings.progressColor = ''; theme(); settingsUi(); pushSettings(); };
+$('pat').onchange = e => { settings.pattern = e.target.value; theme(); pushSettings(); };
+$('prev').onchange = e => { view.month = e.target.value; render(); settingsUi(); };
+$('addList').onclick = () => {
+  const n = $('newList').value.trim(); if (!n) return;
+  const id = 'l' + uid();
+  settings.extraLists = [...(settings.extraLists || []), { id, name: n }];
+  $('newList').value = ''; pushSettings(); settingsUi(); goTab(id);
+};
+$('extraLists').addEventListener('click', e => {
+  const b = e.target.closest('[data-rm]'); if (!b) return; const id = b.dataset.rm;
+  if ([...items.values()].some(i => i.list === id)) { toast('Move or clear the items on that list first'); return; }
+  settings.extraLists = settings.extraLists.filter(l => l.id !== id);
+  if (view.list === id) view.list = 'school';
+  pushSettings(); settingsUi(); render();
+});
+$('sGo').onclick = () => {
+  let url = $('sUrl').value.trim(), key = $('sKey').value.trim();
+  const fromLink = new URLSearchParams((url.split('#')[1] || ''));             // a pasted private link has both
+  if (fromLink.get('s') && fromLink.get('k')) { url = fromLink.get('s'); key = fromLink.get('k'); }
+  const id = (url.match(/\/s\/([^/?#]+)/) || [])[1] || (/^[\w-]{20,}$/.test(url) ? url : '');
+  if (!id) { $('sMsg').textContent = "That doesn't look like a Web app URL. It should contain /macros/s/.../exec."; return; }
+  if (!key) { $('sMsg').textContent = 'Paste your key too, or paste your whole private link above.'; return; }
+  const old = { ...link }; link.s = id; link.k = key;
+  $('sGo').disabled = true; $('sGo').textContent = 'Connecting...'; $('sMsg').textContent = '';
+  run('load').then(res => {
+    store.set('bbb-link', link);
+    try { history.replaceState(null, '', '#s=' + encodeURIComponent(id) + '&k=' + encodeURIComponent(key)); } catch (e) {}
+    // first connection: anything already typed on this device goes up to the sheet
+    if (!(res.items || []).length) items.forEach((v, k) => pending.add(k));
+    settingsUi(); pull();
+  }).catch(err => {
+    Object.assign(link, old);
+    $('sMsg').textContent = /key/i.test(err.message) ? 'The key is wrong. Copy it again from getMyKey.' : "Couldn't reach your script. Check the URL, and that the deployment's access is set to Anyone.";
+  }).finally(() => { $('sGo').disabled = false; $('sGo').textContent = 'Connect'; });
+};
+$('copyLink').onclick = () => {
+  const url = location.origin + location.pathname + '#s=' + encodeURIComponent(link.s) + '&k=' + encodeURIComponent(link.k);
+  navigator.clipboard.writeText(url).then(() => { $('copyLink').textContent = 'Copied'; }, () => toast(url));
+};
+$('disconnect').onclick = () => { link.s = link.k = ''; store.set('bbb-link', {}); try { history.replaceState(null, '', location.pathname); } catch (e) {} setSync('This device only'); settingsUi(); };
+window.addEventListener('hashchange', () => { if (readLink()) pull(); });
+window.addEventListener('focus', pull);
+
+// ---------- start ----------
+let curDay = ymd(new Date());
+setInterval(() => {
+  if (ymd(new Date()) !== curDay) { curDay = ymd(new Date()); render(true); }   // the 1st brings a new month's look
+  if (!document.hidden) pull();
+}, 30000);
+readLink();
+setSync(connected() ? 'Loading...' : 'This device only');
+grow(); render(); pull();
+}
+</script>
+</body>
+</html>
