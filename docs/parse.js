@@ -210,21 +210,26 @@
     });
     if (!keep.length) return null;
     let words = keep.shift().split(/\s+/);
+    // "LI - do the SpaceApps post": a part that is only CAPS is the category, the next part is the item
+    let lead = '';
+    if (keep.length && words.every(isCaps)) { lead = words.map(strip).join(' '); words = keep.shift().split(/\s+/); }
     const notes = keep.join(' - ');
     const strict = opts.list === 'grocery';
     // category first: a run of CAPS at the start (or the very end) of the line
-    let cat = '';
-    let i = 0;
-    while (i < words.length && isCaps(words[i])) i++;
-    if (i > 0 && i < words.length) {
-      let j = i;
-      while (j < words.length && /^\d{3,5}$/.test(strip(words[j])) && j + 1 < words.length) j++;   // "COMP 2631 ..."
-      cat = words.slice(0, j).map(strip).join(' ');
-      words = words.slice(j);
-    } else {
-      let k = words.length;
-      while (k > 0 && isCaps(words[k - 1])) k--;
-      if (k > 0 && k < words.length) { cat = words.slice(k).map(strip).join(' '); words = words.slice(0, k); }
+    let cat = lead;
+    if (!cat) {
+      let i = 0;
+      while (i < words.length && isCaps(words[i])) i++;
+      if (i > 0 && i < words.length) {
+        let j = i;
+        while (j < words.length && /^\d{3,5}$/.test(strip(words[j])) && j + 1 < words.length) j++;   // "COMP 2631 ..."
+        cat = words.slice(0, j).map(strip).join(' ');
+        words = words.slice(j);
+      } else {
+        let k = words.length;
+        while (k > 0 && isCaps(words[k - 1])) k--;
+        if (k > 0 && k < words.length) { cat = words.slice(k).map(strip).join(' '); words = words.slice(0, k); }
+      }
     }
     // then a time ("3pm"), then a date, from inside the text
     let r;

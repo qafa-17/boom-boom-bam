@@ -92,8 +92,12 @@ async function build() {
   w.refreshAfterDate = new Date(Date.now() + 15 * 60e3);
 
   const { data, stale, error, at } = await getData();
-  const want = (args.widgetParameter || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  const all = (data ? data.items : []).filter(i => !want.length || want.includes(String(i.list).toLowerCase()));
+  // Parameter can use list names ("Tasks", "school") or ids; your own lists come from the app's settings
+  const names = Object.assign({}, LIST_NAMES);
+  ((data && data.settings && data.settings.extraLists) || []).forEach(l => { names[l.id] = l.name; });
+  const idFor = w => Object.keys(names).find(id => id.toLowerCase() === w || names[id].toLowerCase() === w) || w;
+  const want = (args.widgetParameter || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).map(idFor);
+  const all = (data ? data.items : []).filter(i => !want.length || want.includes(i.list));
   const open = all.filter(i => !i.done).sort((a, b) =>
     (a.due ? 0 : 1) - (b.due ? 0 : 1) || (a.due || '').localeCompare(b.due || '') ||
     (a.time || '99').localeCompare(b.time || '99') || (a.cat || '~').localeCompare(b.cat || '~') || a.created - b.created);
@@ -101,7 +105,7 @@ async function build() {
 
   // header
   const head = w.addStack(); head.layoutHorizontally(); head.centerAlignContent();
-  const title = head.addText(want.length === 1 ? (LIST_NAMES[want[0]] || want[0]) : 'To do');
+  const title = head.addText(want.length === 1 ? (names[want[0]] || want[0]) : 'To do');
   title.font = F(family === 'small' ? 15 : 17, 'b'); title.textColor = C.text;
   head.addSpacer(6);
   const month = head.addText(MONTH); month.font = F(12, 'i'); month.textColor = C.muted;
@@ -121,7 +125,7 @@ async function build() {
     const total = (data.items || []).length;
     let msg, hint = '';
     if (all.length) msg = 'All done. Boom!';
-    else if (total && want.length) { msg = 'Nothing on ' + want.join(', ') + '.'; hint = 'Your sheet has ' + total + ' item' + (total === 1 ? '' : 's') + ' on other lists. Check the widget\'s Parameter (long-press, Edit Widget) or clear it to show everything.'; }
+    else if (total && want.length) { msg = 'Nothing on ' + want.map(id => names[id] || id).join(', ') + '.'; hint = 'Your sheet has ' + total + ' item' + (total === 1 ? '' : 's') + ' on other lists. Check the widget\'s Parameter (long-press, Edit Widget) or clear it to show everything.'; }
     else { msg = 'Your Google Sheet has no items yet.'; hint = 'Items show up here once the app says "Saved" at the top. Things added while it says "This device only" stay on that device.'; }
     const t = w.addText(msg); t.font = F(16, 'b'); t.textColor = C.text; t.centerAlignText();
     if (hint) { w.addSpacer(6); const h = w.addText(hint); h.font = F(11); h.textColor = C.muted; h.centerAlignText(); }

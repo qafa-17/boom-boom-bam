@@ -345,6 +345,14 @@ function push(id) {
     .catch(() => setSync('Offline, will retry'));
 }
 function pushSettings() { cache(); if (connected()) run('setSettings', settings).catch(() => setSync('Offline, will retry')); }
+// Items saved before "LI - do the post" was understood came out as item "LI" with the task as a note. Fix them once.
+function repairOld() {
+  for (const it of items.values()) {
+    if (it.cat || !it.notes || !/[A-Z]{2}/.test(it.text) || !/^[A-Z0-9&+'.\/-]+( [A-Z0-9&+'.\/-]+)*$/.test(it.text)) continue;
+    const p = parseItem(it.text + ' - ' + it.notes, { list: it.list });
+    if (p && p.cat) { items.set(it.id, { ...it, cat: p.cat, text: p.text, notes: p.notes, due: it.due || p.due, time: it.time || p.time }); push(it.id); }
+  }
+}
 let pulling = false;
 function pull() {
   if (!connected() || pulling) return;
@@ -354,7 +362,7 @@ function pull() {
     for (const id of pending) { if (items.has(id)) m.set(id, items.get(id)); else m.delete(id); }
     items = m;
     if (res.settings) { settings = { ...DEF, ...res.settings }; if (!['auto', 'tiles', 'none'].includes(settings.pattern)) settings.pattern = 'auto'; }
-    cache(); render(true);
+    repairOld(); cache(); render(true);
     [...pending].forEach(push);
     if (!pending.size) setSync('Saved');
   }).catch(e => setSync(/key/i.test(e.message) ? 'Key no longer works' : 'Offline')).finally(() => { pulling = false; });
@@ -438,7 +446,7 @@ const CAT_TINTS = ['#fbd9b5', '#d7dcfa', '#ead5f3', '#c9ece0', '#fdd3db', '#f2e4
 function catTint(c) { let h = 0; for (const ch of c.toUpperCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return CAT_TINTS[h % CAT_TINTS.length]; }
 function row(i) {
   if (editing === i.id) {
-    const raw = (i.cat ? i.cat + ' ' : '') + i.text;
+    const raw = (i.cat ? i.cat + ' ' : '') + i.text + (i.notes ? ' - ' + i.notes : '');
     return `<li class="it" data-id="${esc(i.id)}"><form class="ef"><input name="t" value="${esc(raw)}" aria-label="Item"><div class="row"><input type="date" name="d" value="${esc(i.due || '')}" aria-label="Due date"><input type="time" name="tm" value="${esc(i.time || '')}" aria-label="Time"><select name="l" aria-label="List">${lists().map(l => `<option value="${esc(l.id)}"${l.id === i.list ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div><div class="row"><button type="button" class="link del" data-act="del">Delete</button><button type="button" class="ghost" data-act="cancel">Cancel</button><button class="solid">Save</button></div></form></li>`;
   }
   const d = i.due ? fmtDue(i) : null;
@@ -555,7 +563,7 @@ $('board').addEventListener('submit', e => {
   const f = e.target, id = f.closest('.it').dataset.id, it = items.get(id);
   editing = null;
   const p = parseItem(f.t.value, { list: f.l.value });
-  if (it && p) { items.set(id, { ...it, text: p.text, cat: p.cat, notes: p.notes || it.notes || '', due: f.d.value || p.due || '', time: f.tm.value || p.time || '', list: f.l.value }); push(id); }
+  if (it && p) { items.set(id, { ...it, text: p.text, cat: p.cat, notes: p.notes || '', due: f.d.value || p.due || '', time: f.tm.value || p.time || '', list: f.l.value }); push(id); }
   render();
 });
 $('board').addEventListener('keydown', e => { if (e.key === 'Escape' && editing) { editing = null; render(); } });
@@ -700,7 +708,7 @@ setInterval(() => {
 }, 30000);
 readLink();
 setSync(connected() ? 'Loading...' : 'This device only');
-grow(); render(); pull();
+repairOld(); grow(); render(); pull();
 if (wide() && (store.get('bbb-panel', false) || note.value.trim())) openComposer();
 }
 </script>
