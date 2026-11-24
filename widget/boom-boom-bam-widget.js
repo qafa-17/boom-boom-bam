@@ -25,11 +25,11 @@ const ROWS = { small: 3, medium: 4, large: 11, extraLarge: 15 };
 const now = new Date();
 const [MONTH, ACCENT, TINT] = MONTHS[now.getMonth()];
 const C = {
-  bg: Color.dynamic(new Color('#eef0f3'), new Color('#12151c')),
+  bg: Color.dynamic(new Color('#f6f0e3'), new Color('#12151c')),
   text: Color.dynamic(new Color('#1d2330'), new Color('#e7eaf0')),
-  muted: Color.dynamic(new Color('#677084'), new Color('#98a1b3')),
+  muted: Color.dynamic(new Color('#6f6a60'), new Color('#98a1b3')),
   accent: new Color(ACCENT),
-  track: Color.dynamic(new Color('#d9dde4'), new Color('#2d3442')),
+  track: Color.dynamic(new Color('#e3dac6'), new Color('#2d3442')),
   late: new Color('#b42318'),
 };
 const F = (size, style) => new Font(style === 'b' ? 'Georgia-Bold' : style === 'i' ? 'Georgia-Italic' : 'Georgia', size);
@@ -60,6 +60,9 @@ function prettyCat(c) {
   if (c.replace(/[^A-Za-z]/g, '').length <= 3 && !c.includes(' ')) return c;
   return c.charAt(0) + c.slice(1).toLowerCase();
 }
+// same category colours as the app
+const CAT_TINTS = ['#fbd9b5', '#d7dcfa', '#ead5f3', '#c9ece0', '#fdd3db', '#f2e49c', '#cfe6f3', '#e9dccb', '#f8cfc0', '#f3d4ec', '#c8e3e8'];
+function catTint(c) { let h = 0; for (const ch of c.toUpperCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return CAT_TINTS[h % CAT_TINTS.length]; }
 function dueLabel(it) {
   const n = days(it.due);
   if (n === 0) return 'Today';
@@ -115,7 +118,13 @@ async function build() {
   }
   if (!open.length) {
     w.addSpacer();
-    const t = w.addText(all.length ? 'All done. Boom!' : 'Nothing on your list.'); t.font = F(16, 'i'); t.textColor = C.muted; t.centerAlignText();
+    const total = (data.items || []).length;
+    let msg, hint = '';
+    if (all.length) msg = 'All done. Boom!';
+    else if (total && want.length) { msg = 'Nothing on ' + want.join(', ') + '.'; hint = 'Your sheet has ' + total + ' item' + (total === 1 ? '' : 's') + ' on other lists. Check the widget\'s Parameter (long-press, Edit Widget) or clear it to show everything.'; }
+    else { msg = 'Your Google Sheet has no items yet.'; hint = 'Items show up here once the app says "Saved" at the top. Things added while it says "This device only" stay on that device.'; }
+    const t = w.addText(msg); t.font = F(16, 'b'); t.textColor = C.text; t.centerAlignText();
+    if (hint) { w.addSpacer(6); const h = w.addText(hint); h.font = F(11); h.textColor = C.muted; h.centerAlignText(); }
     w.addSpacer(); return w;
   }
 
@@ -131,9 +140,11 @@ async function build() {
         const d = pill.addText(dueLabel(it)); d.font = F(11, 'b'); d.textColor = new Color('#1d2330'); d.lineLimit = 1; d.minimumScaleFactor = 0.7;
       }
     }
-    const txt = row.addStack(); txt.layoutHorizontally();
-    if (it.cat) { const c = txt.addText(prettyCat(it.cat) + '  '); c.font = F(13, 'b'); c.textColor = C.accent; c.lineLimit = 1; }
-    const t = txt.addText(it.text); t.font = F(13); t.textColor = C.text; t.lineLimit = 1;
+    const t = row.addText(it.text); t.font = F(family === 'small' ? 13 : 14.5, 'b'); t.textColor = C.text; t.lineLimit = 1; t.minimumScaleFactor = 0.85;
+    if (it.cat && family !== 'small') {
+      const cp = row.addStack(); cp.cornerRadius = 3; cp.setPadding(1, 5, 1, 5); cp.backgroundColor = new Color(catTint(it.cat));
+      const c = cp.addText(prettyCat(it.cat)); c.font = F(9.5); c.textColor = new Color('#1d2330'); c.lineLimit = 1;
+    }
     row.addSpacer();
     w.addSpacer(family === 'large' || family === 'extraLarge' ? 5 : 3);
   }

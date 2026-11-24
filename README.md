@@ -11,10 +11,10 @@ SS trading cards need to make nov 27     ->  Need to make trading cards    Due F
 
 - **Type loosely.** Dates (`nov 27`, `12/5`, `fri`, `tmrw`, `in 2 weeks`, `this weekend`) and times (`3pm`) are found anywhere in a line. ALL CAPS at the start (or end) becomes the category: short codes stay as typed (`SS`), words become `Chem`. Wording gets tidied: `trading cards need to make` becomes `Need to make trading cards`.
 - **Side panel for adding.** Press **+ Add** (or **N** on a keyboard) to slide out the note, type or paste one item per line, and see what each line becomes before you add it. It tucks away again when you're done, so the list stays in the middle of the page.
-- **Lists:** Grocery, Finals study, Home, School, plus your own. Swipe or click between them, or use **Combined** to see several lists together sorted by subject.
+- **Lists:** Grocery, Finals study, Home, School, plus your own. Swipe or click between them, or use **Combined** to see several lists together. Any list can be deleted in Settings (with Undo), and the default ones can be brought back.
 - **One list, sorted by due date.** Each item's category is a coloured highlight next to its due date, not a separate heading. **Filter** lets you sort by category instead, or show only some categories or due dates (overdue, next 7 days, this month, no due date).
 - **Due dates** are highlighted in their month's colour (peridot for November, ice blue for December, and so on). Late items get a red outline.
-- **Monthly look:** the accent colour and background (pinstripe or grid) change on the 1st.
+- **Monthly look:** cream paper with a dimmed blue-tile pattern, red lanterns and plum blossom in January, yellow flowers in December. The accent colour changes on the 1st too. Settings can switch to tiles only or plain paper.
 - **Progress bar** per list, colour adjustable in Settings.
 - **Boom, Boom, Bam.** A ticked item slides off to the left and *Boom!*, *Boom!*, *Bam!* (in that order) appears in its place and fades, then the item drops to Done at the bottom. The count starts over each time you open the app.
 - Finished items go grey with a line through them and move to the bottom.
@@ -24,6 +24,7 @@ SS trading cards need to make nov 27     ->  Need to make trading cards    Due F
 ```
 docs/index.html                   the app (hosted on GitHub Pages)
 docs/parse.js                     turns a loosely typed line into an item
+docs/art/                         paper texture, tile pattern, January and December art
 apps-script/Code.gs               sync backend: a Google Sheet holds your list
 widget/boom-boom-bam-widget.js    iPhone widget (Scriptable app)
 desktop/                          Windows window that stays on top of everything

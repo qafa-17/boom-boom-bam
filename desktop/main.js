@@ -55,7 +55,7 @@ function createWindow() {
     width: state.width, height: state.height, x: state.x, y: state.y,
     minWidth: 320, minHeight: 420,
     title: 'Boom Boom Bam',
-    backgroundColor: '#eef0f3',
+    backgroundColor: '#f6f0e3',
     autoHideMenuBar: true,               // press Alt to see the Window menu
     alwaysOnTop: state.onTop,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
@@ -71,7 +71,7 @@ function createWindow() {
   });
   win.webContents.on('did-fail-load', () => {
     win.loadURL('data:text/html,' + encodeURIComponent(
-      '<body style="font:16px Georgia,serif;color:#1d2330;background:#eef0f3;padding:24px">' +
+      '<body style="font:16px Georgia,serif;color:#1d2330;background:#f6f0e3;padding:24px">' +
       '<h2>Can\'t reach your list</h2><p>Check your internet connection. Press Ctrl+R to try again.</p></body>'));
   });
 
