@@ -1,17 +1,51 @@
 // Boom Boom Bam: iPhone home-screen widget, for the free Scriptable app.
 //
 // Setup (README has the full steps):
-//   1. Paste your Apps Script web app URL and key below.
-//   2. Paste your private link (Settings > Copy private link in the app) as APP_LINK.
+//   1. Paste your Apps Script web app URL, key and private link below (or run the script and
+//      it will ask). They are remembered, so later versions can be pasted in as-is.
+//   2. The private link is in the app: Settings > Sync > Copy private link.
 //   3. Add a Scriptable widget to your home screen (Large shows the most),
 //      long-press it > Edit Widget > Script: this one.
 //   4. Optional, Parameter: which lists to show, e.g.  school,finals   (blank = everything)
 //
 // Tapping the widget opens the full app. iOS decides when widgets refresh (roughly every 15 minutes).
 
-const SCRIPT_URL = 'PASTE_WEB_APP_URL_HERE';   // https://script.google.com/macros/s/.../exec
-const KEY = 'PASTE_KEY_HERE';
-const APP_LINK = 'PASTE_PRIVATE_LINK_HERE';    // https://qafa-17.github.io/boom-boom-bam/#s=...&k=...
+// Fill these in once. The widget then remembers them on your phone (in Scriptable's Keychain),
+// so when you paste in a newer version of this script you can leave them as PASTE_...
+const SET_SCRIPT_URL = 'PASTE_WEB_APP_URL_HERE';   // https://script.google.com/macros/s/.../exec
+const SET_KEY = 'PASTE_KEY_HERE';
+const SET_APP_LINK = 'PASTE_PRIVATE_LINK_HERE';    // https://qafa-17.github.io/boom-boom-bam/#s=...&k=...
+
+async function loadSetup() {
+  const typed = { SCRIPT_URL: SET_SCRIPT_URL, KEY: SET_KEY, APP_LINK: SET_APP_LINK };
+  const out = {};
+  for (const name of Object.keys(typed)) {
+    const v = typed[name].trim(), k = 'boom-boom-bam.' + name;
+    if (v && !v.startsWith('PASTE_')) { out[name] = v; Keychain.set(k, v); }
+    else if (Keychain.contains(k)) out[name] = Keychain.get(k);
+    else out[name] = '';
+  }
+  // Nothing saved yet and you're running it inside Scriptable: ask once.
+  if ((!out.SCRIPT_URL || !out.KEY) && !config.runsInWidget) {
+    const a = new Alert();
+    a.title = 'Connect your list';
+    a.message = 'Paste your Web app URL, key and private link. They are saved on this phone only.';
+    a.addTextField('Web app URL (ends in /exec)', out.SCRIPT_URL);
+    a.addTextField('Key', out.KEY);
+    a.addTextField('Private link (optional)', out.APP_LINK);
+    a.addAction('Save');
+    a.addCancelAction('Cancel');
+    if ((await a.presentAlert()) === 0) {
+      ['SCRIPT_URL', 'KEY', 'APP_LINK'].forEach((name, i) => {
+        const v = a.textFieldValue(i).trim();
+        out[name] = v; if (v) Keychain.set('boom-boom-bam.' + name, v);
+      });
+    }
+  }
+  return out;
+}
+const SETUP = await loadSetup();
+const SCRIPT_URL = SETUP.SCRIPT_URL, KEY = SETUP.KEY, APP_LINK = SETUP.APP_LINK;
 
 const MONTHS = [
   ['January', '#8c2f45', '#f1d3da'], ['February', '#a3476d', '#f4d6e2'], ['March', '#4f7d5c', '#d9eadb'],
@@ -98,6 +132,11 @@ async function build() {
   const idFor = w => Object.keys(names).find(id => id.toLowerCase() === w || names[id].toLowerCase() === w) || w;
   const want = (args.widgetParameter || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).map(idFor);
   const all = (data ? data.items : []).filter(i => !want.length || want.includes(i.list));
+  for (const i of all) {
+    if (!i.cat && i.notes && /^[A-Z0-9&+'.\/-]+( [A-Z0-9&+'.\/-]+)*$/.test(i.text) && /[A-Z]{2}/.test(i.text)) {
+      i.cat = i.text; i.text = i.notes.charAt(0).toUpperCase() + i.notes.slice(1); i.notes = '';
+    }
+  }
   const open = all.filter(i => !i.done).sort((a, b) =>
     (a.due ? 0 : 1) - (b.due ? 0 : 1) || (a.due || '').localeCompare(b.due || '') ||
     (a.time || '99').localeCompare(b.time || '99') || (a.cat || '~').localeCompare(b.cat || '~') || a.created - b.created);
@@ -115,7 +154,7 @@ async function build() {
   if (all.length) { const img = w.addImage(bar(family === 'small' ? 130 : 300, doneN / all.length)); img.imageSize = new Size(family === 'small' ? 130 : 300, 6); w.addSpacer(8); }
 
   if (!data) {
-    const t = w.addText(SCRIPT_URL.startsWith('http') ? "Can't reach your list right now." : 'Open this script in Scriptable and paste your URL, key and link at the top.');
+    const t = w.addText(SCRIPT_URL.startsWith('http') ? "Can't reach your list right now." : 'Open Scriptable and run this script once to connect your list.');
     t.font = F(13); t.textColor = C.muted;
     if (error && SCRIPT_URL.startsWith('http')) { const e = w.addText(error); e.font = F(10); e.textColor = C.muted; }
     w.addSpacer(); return w;
@@ -133,9 +172,10 @@ async function build() {
   }
 
   const max = ROWS[family] || 11;
+  const dates = open.slice(0, max).some(i => i.due);
   for (const it of open.slice(0, max)) {
     const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent(); row.spacing = 8;
-    if (family !== 'small') {
+    if (family !== 'small' && dates) {
       const pill = row.addStack(); pill.size = new Size(52, 18); pill.cornerRadius = 4; pill.centerAlignContent();
       if (it.due) {
         const m = pd(it.due).getMonth();

@@ -51,7 +51,7 @@ After changing `Code.gs` later, use **Deploy > Manage deployments > Edit > New v
 ### 3. iPhone
 
 - **Full-screen app:** open your private link in Safari, **Share > Add to Home Screen**. It opens full screen like an app.
-- **Widget:** install **Scriptable** (free) from the App Store. New script, paste in `widget/boom-boom-bam-widget.js`, fill in the three values at the top, run it once to check.
+- **Widget:** install **Scriptable** (free) from the App Store. New script, paste in `widget/boom-boom-bam-widget.js`, fill in the three values at the top (or just run it and it asks), run it once to check. The values are remembered on the phone, so a newer version of the script can be pasted in without filling them in again.
   Then long-press the home screen, **+**, Scriptable, choose the **Large** size, add it, long-press it, **Edit Widget**, Script: this one.
   Optional **Parameter** to show only some lists: `school,finals`. Blank shows everything.
 
