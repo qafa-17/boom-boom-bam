@@ -17,7 +17,13 @@ const SET_KEY = 'PASTE_KEY_HERE';
 const SET_APP_LINK = 'PASTE_PRIVATE_LINK_HERE';    // https://qafa-17.github.io/boom-boom-bam/#s=...&k=...
 
 async function loadSetup() {
-  const typed = { SCRIPT_URL: SET_SCRIPT_URL, KEY: SET_KEY, APP_LINK: SET_APP_LINK };
+  // Accepts these lines either way: SET_SCRIPT_URL... (this version) or SCRIPT_URL... (older versions)
+  const pick = f => { try { const v = f(); return typeof v === 'string' ? v : ''; } catch (e) { return ''; } };
+  const typed = {
+    SCRIPT_URL: pick(() => SET_SCRIPT_URL) || pick(() => SCRIPT_URL),
+    KEY: pick(() => SET_KEY) || pick(() => KEY),
+    APP_LINK: pick(() => SET_APP_LINK) || pick(() => APP_LINK),
+  };
   const out = {};
   for (const name of Object.keys(typed)) {
     const v = typed[name].trim(), k = 'boom-boom-bam.' + name;
@@ -45,7 +51,7 @@ async function loadSetup() {
   return out;
 }
 const SETUP = await loadSetup();
-const SCRIPT_URL = SETUP.SCRIPT_URL, KEY = SETUP.KEY, APP_LINK = SETUP.APP_LINK;
+const API_URL = SETUP.SCRIPT_URL, API_KEY = SETUP.KEY, OPEN_LINK = SETUP.APP_LINK;
 
 const MONTHS = [
   ['January', '#8c2f45', '#f1d3da'], ['February', '#a3476d', '#f4d6e2'], ['March', '#4f7d5c', '#d9eadb'],
@@ -70,7 +76,7 @@ const fm = FileManager.local();
 const cachePath = fm.joinPath(fm.documentsDirectory(), 'boom-boom-bam-cache.json');
 async function getData() {
   try {
-    const req = new Request(SCRIPT_URL + '?fn=load&key=' + encodeURIComponent(KEY));
+    const req = new Request(API_URL + '?fn=load&key=' + encodeURIComponent(API_KEY));
     req.timeoutInterval = 12;
     const res = await req.loadJSON();
     if (!res.ok) throw new Error(res.error);
@@ -150,7 +156,7 @@ async function build() {
   w.backgroundColor = C.bg;
   const bg = await background(); if (bg) w.backgroundImage = bg;
   w.setPadding(14, 14, 10, 14);
-  if (APP_LINK.startsWith('http')) w.url = APP_LINK;
+  if (OPEN_LINK.startsWith('http')) w.url = OPEN_LINK;
   w.refreshAfterDate = new Date(Date.now() + 15 * 60e3);
 
   const { data, stale, error, at } = await getData();
@@ -212,7 +218,7 @@ async function build() {
     w.addSpacer();
     let msg, hint = '';
     const total = data ? (data.items || []).length : 0;
-    if (!data) { msg = SCRIPT_URL.startsWith('http') ? "Can't reach your list right now." : 'Open Scriptable and run this script once to connect your list.'; hint = error && SCRIPT_URL.startsWith('http') ? error : ''; }
+    if (!data) { msg = API_URL.startsWith('http') ? "Can't reach your list right now." : 'Open Scriptable and run this script once to connect your list.'; hint = error && API_URL.startsWith('http') ? error : ''; }
     else if (all.length) msg = 'All done. Boom!';
     else if (total && want.length) { msg = 'Nothing on ' + want.map(id => names[id] || id).join(', ') + '.'; hint = "Check the widget's Parameter (long-press, Edit Widget), or clear it to show everything."; }
     else { msg = 'Your Google Sheet has no items yet.'; hint = 'Items show up here once the app says "Saved".'; }
