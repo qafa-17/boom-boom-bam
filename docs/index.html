@@ -50,7 +50,7 @@ body {
 /* paper, and the month's art behind everything */
 body { background-image: url(art/paper.jpg); background-size: 256px 256px; }
 #bgart { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-#bgart[data-art=tiles] { background: url(art/tiles.webp) 0 0 / 360px 360px repeat; }
+#bgart[data-art=tiles] { background: url(art/tiles.webp) 0 0 / 200px 200px repeat; }
 #bgart img { position: absolute; opacity: var(--art-o); max-width: none; }
 #bgart[data-art=jan]::before, #bgart[data-art=dec]::before { content: ""; position: absolute; inset: 10px; border: 1.5px solid var(--frame); opacity: .55; }
 #bgart[data-art=jan]::after, #bgart[data-art=dec]::after { content: ""; position: absolute; inset: 16px; border: 1px solid var(--frame); opacity: .45; }
