@@ -159,7 +159,7 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
 .empty { text-align: center; padding: 34px 16px; color: var(--muted); }
 .empty code { font-family: inherit; background: var(--tint); color: var(--chip-text); padding: 0 6px; border-radius: 4px; }
 
-#toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-size: 11pt; display: flex; gap: 12px; align-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / .15); z-index: 31; max-width: 92vw; }
+#toast { position: fixed; line-height: 1.3; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-size: 11pt; display: flex; gap: 12px; align-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / .15); z-index: 31; max-width: 92vw; }
 /* Boom, Boom, Bam: the row slides off to the left and the word appears in its place */
 .it { position: relative; }
 .it { transition: background-color .3s ease; }
@@ -208,7 +208,7 @@ main { max-width: 600px; }
  <div class="head">
  <header>
   <div class="brand"><h1>To do</h1><div class="month" id="month"></div></div>
-  <div class="hr"><span id="sync">This device only</span><button class="ghost" id="gear" aria-expanded="false" aria-controls="settings">Settings</button></div>
+  <div class="hr"><button class="link" id="sync" style="color:var(--muted);font-weight:400">This device only</button><button class="ghost" id="gear" aria-expanded="false" aria-controls="settings">Settings</button></div>
  </header>
 
  <section id="settings" hidden>
@@ -330,9 +330,25 @@ function run(fn, ...args) {
   if (!connected()) return Promise.reject(new Error('not connected'));
   return fetch('https://script.google.com/macros/s/' + encodeURIComponent(link.s) + '/exec', {
     method: 'POST', body: JSON.stringify({ key: link.k, fn, args }), credentials: 'omit',
-  }).then(r => r.json()).then(d => d.ok ? d.result : Promise.reject(new Error(d.error)));
+  }).then(r => r.text()).then(t => { let d; try { d = JSON.parse(t); } catch (e) { throw new Error(/<title>([^<]*)/i.exec(t) ? 'Google sent back a page instead of data: ' + /<title>([^<]*)/i.exec(t)[1] : 'Unexpected reply from Google'); } return d.ok ? d.result : Promise.reject(new Error(d.error)); });
 }
-function setSync(t) { $('sync').textContent = t; }
+let syncError = '';
+function setSync(t) { $('sync').textContent = t; if (!/retry|Sync problem|Offline|Key/.test(t)) syncError = ''; }
+// Say what actually went wrong instead of a blanket "Offline"
+function syncFailed(e) {
+  const msg = String((e && e.message) || e || '');
+  syncError = msg;
+  if (!navigator.onLine) setSync('Offline');
+  else if (/wrong key/i.test(msg)) setSync('Key no longer works');
+  else setSync('Sync problem (tap)');
+}
+$('sync').onclick = () => {
+  if (!syncError) return;
+  const why = /Failed to fetch|NetworkError|Load failed/i.test(syncError)
+    ? "Couldn't reach your Apps Script. Its deployment may have been removed or changed, or its access isn't set to Anyone."
+    : 'Your Apps Script answered with an error: ' + syncError;
+  toast(why);
+};
 const Q = {};
 function push(id) {
   pending.add(id); cache();
@@ -342,9 +358,9 @@ function push(id) {
     const it = items.get(id);
     return it ? run('put', it) : run('del', id);
   }).then(() => { pending.delete(id); cache(); if (!Object.keys(Q).some(k => pending.has(k))) setSync('Saved'); })
-    .catch(() => setSync('Offline, will retry'));
+    .catch(syncFailed);
 }
-function pushSettings() { cache(); if (connected()) run('setSettings', settings).catch(() => setSync('Offline, will retry')); }
+function pushSettings() { cache(); if (connected()) run('setSettings', settings).catch(syncFailed); }
 // Items saved before "LI - do the post" was understood came out as item "LI" with the task as a note. Fix them once.
 function repairOld() {
   for (const it of items.values()) {
@@ -365,7 +381,7 @@ function pull() {
     repairOld(); cache(); render(true);
     [...pending].forEach(push);
     if (!pending.size) setSync('Saved');
-  }).catch(e => setSync(/key/i.test(e.message) ? 'Key no longer works' : 'Offline')).finally(() => { pulling = false; });
+  }).catch(syncFailed).finally(() => { pulling = false; });
 }
 
 // ---------- theme ----------
