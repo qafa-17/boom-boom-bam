@@ -83,7 +83,12 @@ function sheet_() {
 
 function rowToItem_(r) {
   const o = {};
-  COLS.forEach(function (c, i) { o[c] = r[i] === null || r[i] === undefined ? '' : String(r[i]); });
+  const tz = Session.getScriptTimeZone();
+  COLS.forEach(function (c, i) {
+    const v = r[i];
+    if (v instanceof Date) o[c] = Utilities.formatDate(v, tz, c === 'time' ? 'HH:mm' : c === 'due' ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm:ss");
+    else o[c] = v === null || v === undefined ? '' : String(v);
+  });
   o.done = o.done === 'true' || o.done === 'TRUE';
   o.doneAt = Number(o.doneAt) || 0;
   o.created = Number(o.created) || 0;
@@ -119,8 +124,10 @@ function put(item) {
   const sh = sheet_();
   const row = itemToRow_(item);
   const at = findRow_(sh, item.id);
-  if (at > 0) sh.getRange(at, 1, 1, row.length).setValues([row]);
-  else sh.appendRow(row);
+  const target = at > 0 ? at : sh.getLastRow() + 1;
+  const range = sh.getRange(target, 1, 1, row.length);
+  range.setNumberFormat('@');                  // keep dates as plain text so Sheets doesn't convert them
+  range.setValues([row]);
   return true;
 }
 

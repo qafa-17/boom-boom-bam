@@ -89,6 +89,34 @@ async function getData() {
 }
 
 // ---------- helpers ----------
+// Dates and times can come back from Google Sheets as "2026-11-27", as an ISO time,
+// or as a full date string if Sheets turned the cell into a real date. Read all of them.
+function normDue(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const d = new Date(s); if (!isNaN(d)) return ymdLocal(new Date(d.getTime() + 12 * 3600e3)); }
+  m = s.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{1,2}),? (\d{4})/);   // "Fri Nov 27 2026 00:00:00 GMT..."
+  if (m) return m[3] + '-' + String('JanFebMarAprMayJunJulAugSepOctNovDec'.indexOf(m[1]) / 3 + 1).padStart(2, '0') + '-' + m[2].padStart(2, '0');
+  const d = new Date(s);
+  return isNaN(d) ? '' : ymdLocal(d);
+}
+function normTime(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  let m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (m) return m[1].padStart(2, '0') + ':' + m[2];
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const d = new Date(s); if (!isNaN(d)) return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  m = s.match(/\b(\d{1,2}):(\d{2}):\d{2}\b/);
+  return m ? m[1].padStart(2, '0') + ':' + m[2] : '';
+}
+function ymdLocal(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function normItem(i) {
+  return { ...i, text: String(i.text || ''), cat: String(i.cat || ''), notes: String(i.notes || ''), due: normDue(i.due), time: normTime(i.time),
+    done: i.done === true || i.done === 'true' || i.done === 'TRUE', doneAt: Number(i.doneAt) || 0, created: Number(i.created) || 0 };
+}
+
 const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 const days = s => Math.round((pd(s) - midnight) / 864e5);
@@ -166,7 +194,7 @@ async function build() {
   ((data && data.settings && data.settings.extraLists) || []).forEach(l => { names[l.id] = l.name; });
   const idFor = x => Object.keys(names).find(id => id.toLowerCase() === x || names[id].toLowerCase() === x) || x;
   const want = (args.widgetParameter || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).map(idFor);
-  const all = (data ? data.items : []).filter(i => !want.length || want.includes(i.list));
+  const all = (data ? data.items : []).filter(i => i && i.id).map(normItem).filter(i => !want.length || want.includes(i.list));
   for (const i of all) {   // items saved the old way: "LI" as the item, the task as a note
     if (!i.cat && i.notes && /^[A-Z0-9&+'.\/-]+( [A-Z0-9&+'.\/-]+)*$/.test(i.text) && /[A-Z]{2}/.test(i.text)) {
       i.cat = i.text; i.text = i.notes.charAt(0).toUpperCase() + i.notes.slice(1); i.notes = '';

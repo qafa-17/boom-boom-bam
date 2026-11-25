@@ -296,13 +296,41 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const pad = n => String(n).padStart(2, '0');
 const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+// Dates and times can come back from Google Sheets as "2026-11-27", as an ISO time,
+// or as a full date string if Sheets turned the cell into a real date. Read all of them.
+function normDue(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const d = new Date(s); if (!isNaN(d)) return ymdLocal(new Date(d.getTime() + 12 * 3600e3)); }
+  m = s.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{1,2}),? (\d{4})/);   // "Fri Nov 27 2026 00:00:00 GMT..."
+  if (m) return m[3] + '-' + String('JanFebMarAprMayJunJulAugSepOctNovDec'.indexOf(m[1]) / 3 + 1).padStart(2, '0') + '-' + m[2].padStart(2, '0');
+  const d = new Date(s);
+  return isNaN(d) ? '' : ymdLocal(d);
+}
+function normTime(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  let m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (m) return m[1].padStart(2, '0') + ':' + m[2];
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const d = new Date(s); if (!isNaN(d)) return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  m = s.match(/\b(\d{1,2}):(\d{2}):\d{2}\b/);
+  return m ? m[1].padStart(2, '0') + ':' + m[2] : '';
+}
+function ymdLocal(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function normItem(i) {
+  return { ...i, text: String(i.text || ''), cat: String(i.cat || ''), notes: String(i.notes || ''), due: normDue(i.due), time: normTime(i.time),
+    done: i.done === true || i.done === 'true' || i.done === 'TRUE', doneAt: Number(i.doneAt) || 0, created: Number(i.created) || 0 };
+}
+
 const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 const days = s => Math.round((pd(s) - today()) / 864e5);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 
 // ---------- state ----------
-let items = new Map((store.get('bbb-items', [])).map(i => [i.id, i]));
+let items = new Map((store.get('bbb-items', [])).map(i => [i.id, normItem(i)]));
 let settings = { ...DEF, ...store.get('bbb-settings', {}) };
 if (!['auto', 'tiles', 'none'].includes(settings.pattern)) settings.pattern = 'auto';
 let pending = new Set(store.get('bbb-pending', []));          // ids changed here and not yet on the server
@@ -374,11 +402,12 @@ function pull() {
   if (!connected() || pulling) return;
   pulling = true;
   run('load').then(res => {
-    const m = new Map((res.items || []).map(i => [i.id, i]));
+    const m = new Map((res.items || []).filter(i => i && i.id).map(i => [i.id, normItem(i)]));
     for (const id of pending) { if (items.has(id)) m.set(id, items.get(id)); else m.delete(id); }
     items = m;
     if (res.settings) { settings = { ...DEF, ...res.settings }; if (!['auto', 'tiles', 'none'].includes(settings.pattern)) settings.pattern = 'auto'; }
-    repairOld(); cache(); render(true);
+    repairOld(); cache();
+    try { render(true); } catch (err) { console.error(err); toast('Something in your list could not be shown: ' + err.message); }
     [...pending].forEach(push);
     if (!pending.size) setSync('Saved');
   }).catch(syncFailed).finally(() => { pulling = false; });
