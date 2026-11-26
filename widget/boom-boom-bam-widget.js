@@ -6,7 +6,8 @@
 //   2. The private link is in the app: Settings > Sync > Copy private link.
 //   3. Add a Scriptable widget to your home screen (Large shows the most),
 //      long-press it > Edit Widget > Script: this one.
-//   4. Optional, Parameter: which lists to show, e.g.  school,finals   (blank = everything)
+//   4. By default the widget shows only ASAP items, from every list.
+//      Optional Parameter: all  (everything), or list names, e.g.  school,finals
 //
 // Tapping the widget opens the full app. iOS decides when widgets refresh (roughly every 15 minutes).
 
@@ -94,6 +95,7 @@ async function getData() {
 function normDue(v) {
   if (!v) return '';
   const s = String(v).trim();
+  if (/^asap$/i.test(s)) return 'ASAP';
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
   if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const d = new Date(s); if (!isNaN(d)) return ymdLocal(new Date(d.getTime() + 12 * 3600e3)); }
@@ -171,7 +173,7 @@ async function background() {
 function chip(parent, label, tint, opts = {}) {
   const c = parent.addStack(); c.cornerRadius = 4; c.setPadding(1, 6, 1, 6); c.backgroundColor = new Color(tint);
   if (opts.late) { c.borderColor = C.late; c.borderWidth = 1.2; }
-  const t = c.addText(label); t.font = F(opts.size || 10, opts.bold ? 'b' : ''); t.textColor = C.chipText; t.lineLimit = 1;
+  const t = c.addText(label); t.font = F(opts.size || 10, opts.bold ? 'b' : ''); t.textColor = opts.white ? Color.white() : C.chipText; t.lineLimit = 1;
   return c;
 }
 
@@ -193,15 +195,22 @@ async function build() {
   hidden.forEach(id => delete names[id]);
   ((data && data.settings && data.settings.extraLists) || []).forEach(l => { names[l.id] = l.name; });
   const idFor = x => Object.keys(names).find(id => id.toLowerCase() === x || names[id].toLowerCase() === x) || x;
-  const want = (args.widgetParameter || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).map(idFor);
-  const all = (data ? data.items : []).filter(i => i && i.id).map(normItem).filter(i => !want.length || want.includes(i.list));
+  // Default: only ASAP items, from every list. Parameter "all" shows everything; list names show just those lists.
+  const raw = (args.widgetParameter || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  const everything = raw.some(x => x === 'all' || x === 'everything');
+  const asapOnly = !raw.length;
+  const want = everything ? [] : raw.map(idFor);
+  const isAsap = i => i.due === 'ASAP';
+  const all = (data ? data.items : []).filter(i => i && i.id).map(normItem)
+    .filter(i => asapOnly ? isAsap(i) : (!want.length || want.includes(i.list)));
   for (const i of all) {   // items saved the old way: "LI" as the item, the task as a note
     if (!i.cat && i.notes && /^[A-Z0-9&+'.\/-]+( [A-Z0-9&+'.\/-]+)*$/.test(i.text) && /[A-Z]{2}/.test(i.text)) {
       i.cat = i.text; i.text = i.notes.charAt(0).toUpperCase() + i.notes.slice(1); i.notes = '';
     }
   }
+  const rank = i => isAsap(i) ? 0 : i.due ? 1 : 2;
   const open = all.filter(i => !i.done).sort((a, b) =>
-    (a.due ? 0 : 1) - (b.due ? 0 : 1) || (a.due || '').localeCompare(b.due || '') ||
+    rank(a) - rank(b) || (a.due || '').localeCompare(b.due || '') ||
     (a.time || '99').localeCompare(b.time || '99') || (a.created || 0) - (b.created || 0));
   const doneN = all.length - open.length;
 
@@ -215,7 +224,17 @@ async function build() {
   upd.font = F(10.5); upd.textColor = C.muted;
 
   // list names, the one shown underlined (all of them when no Parameter is set)
-  if (big) {
+  if (big && asapOnly) {
+    w.addSpacer(8);
+    const tabs = w.addStack(); tabs.layoutHorizontally(); tabs.spacing = 10; tabs.bottomAlignContent();
+    const col = tabs.addStack(); col.layoutVertically(); col.spacing = 3;
+    const t = col.addText('ASAP'); t.font = F(12, 'b'); t.textColor = C.text;
+    col.addImage(hline(32, new Color('#b4353a'), 2));
+    const sub = tabs.addText('from every list'); sub.font = F(11, 'i'); sub.textColor = C.muted;
+    tabs.addSpacer();
+    w.addSpacer(4);
+    w.addImage(hline(W, C.border)).imageSize = new Size(W, 1);
+  } else if (big) {
     w.addSpacer(8);
     const tabs = w.addStack(); tabs.layoutHorizontally(); tabs.spacing = 12;
     const ids = Object.keys(names);
@@ -247,7 +266,8 @@ async function build() {
     let msg, hint = '';
     const total = data ? (data.items || []).length : 0;
     if (!data) { msg = API_URL.startsWith('http') ? "Can't reach your list right now." : 'Open Scriptable and run this script once to connect your list.'; hint = error && API_URL.startsWith('http') ? error : ''; }
-    else if (all.length) msg = 'All done. Boom!';
+    else if (all.length) msg = asapOnly ? 'Nothing left ASAP. Boom!' : 'All done. Boom!';
+    else if (asapOnly) { msg = 'Nothing ASAP right now.'; hint = 'Write asap on an item in the app and it shows up here.'; }
     else if (total && want.length) { msg = 'Nothing on ' + want.map(id => names[id] || id).join(', ') + '.'; hint = "Check the widget's Parameter (long-press, Edit Widget), or clear it to show everything."; }
     else { msg = 'Your Google Sheet has no items yet.'; hint = 'Items show up here once the app says "Saved".'; }
     const t = w.addText(msg); t.font = F(15); t.textColor = C.text; t.centerAlignText();
@@ -256,7 +276,7 @@ async function build() {
   }
 
   // the card of items
-  const max = { small: 3, medium: 2, large: 6, extraLarge: 9 }[family] || 6;
+  const max = { small: 3, medium: 2, large: asapOnly ? 7 : 6, extraLarge: 10 }[family] || 6;
   const card = w.addStack(); card.layoutVertically();
   card.backgroundColor = C.card; card.cornerRadius = 12; card.borderColor = C.border; card.borderWidth = 1;
   const rows = open.slice(0, max);
@@ -266,11 +286,12 @@ async function build() {
     const cb = row.addImage(checkbox()); cb.imageSize = new Size(16, 16);
     const col = row.addStack(); col.layoutVertically(); col.spacing = 3;
     const t = col.addText(it.text); t.font = F(family === "small" ? 12 : 13); t.textColor = C.text; t.lineLimit = 1;
-    if (family !== 'small' && (it.cat || it.due)) {
+    if (family !== 'small' && (it.cat || (it.due && !(asapOnly && isAsap(it))) || (big && (asapOnly || want.length !== 1)))) {
       const meta = col.addStack(); meta.layoutHorizontally(); meta.spacing = 5; meta.centerAlignContent();
       if (it.cat) chip(meta, prettyCat(it.cat), catTint(it.cat), { size: 9 });
-      if (it.due) chip(meta, dueLabel(it), MONTHS[pd(it.due).getMonth()][2], { size: 10, late: days(it.due) < 0 });
-      if (want.length !== 1 && big) { const l = meta.addText(names[it.list] || ''); l.font = F(9.5); l.textColor = C.muted; l.lineLimit = 1; }
+      if (it.due && isAsap(it) && !asapOnly) chip(meta, 'ASAP', '#b4353a', { size: 9.5, bold: true, white: true });
+      else if (it.due && !isAsap(it)) chip(meta, dueLabel(it), MONTHS[pd(it.due).getMonth()][2], { size: 10, late: days(it.due) < 0 });
+      if ((asapOnly || want.length !== 1) && big) { const l = meta.addText(names[it.list] || ''); l.font = F(9.5); l.textColor = C.muted; l.lineLimit = 1; }
     }
     row.addSpacer();
     if (k < rows.length - 1) card.addImage(hline(W, C.border)).imageSize = new Size(W, 1);

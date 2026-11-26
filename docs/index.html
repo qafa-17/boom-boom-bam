@@ -145,6 +145,8 @@ h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; color: va
 .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; font-size: 10.5pt; color: var(--muted); align-items: center; }
 .due { background: var(--c); color: var(--chip-text); border-radius: 5px; padding: 0 7px; font-weight: 600; white-space: nowrap; }
 .due.cat { font-size: 9pt; font-weight: 600; padding: 0 6px; letter-spacing: .01em; }
+.due.asap { background: #b4353a; color: #fff; letter-spacing: .04em; }
+.it.done .due.asap { background: transparent; color: var(--muted); }
 .due.over { box-shadow: inset 0 0 0 1.5px var(--err); }
 .edit { background: none; border: 0; color: var(--muted); font-size: 10.5pt; font-weight: 600; padding: 2px 4px; min-height: 32px; }
 .it.done .ck { background: var(--muted); border-color: var(--muted); }
@@ -259,7 +261,7 @@ main { max-width: 600px; }
 Career Mentorship sign up -- nov 21
 SS trading cards need to make nov 27"></textarea></div>
  <div class="bar"><select id="addTo" aria-label="Add to list"></select><button class="solid" id="add" disabled>Add</button></div>
- <p class="hint">ALL CAPS at the start becomes the category. Dates like nov 27, fri, tmrw or 12/5 are picked up anywhere in the line. <span class="kbd">Press N to open this panel, Esc to close it.</span></p>
+ <p class="hint">ALL CAPS at the start becomes the category. Write asap to put something at the very top. Dates like nov 27, fri, tmrw or 12/5 are picked up anywhere in the line. <span class="kbd">Press N to open this panel, Esc to close it.</span></p>
 
  <section id="previewWrap" hidden><h2>Ready to add</h2><ul class="list" id="preview"></ul></section>
 
@@ -301,6 +303,7 @@ const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y,
 function normDue(v) {
   if (!v) return '';
   const s = String(v).trim();
+  if (/^asap$/i.test(s)) return 'ASAP';
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
   if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const d = new Date(s); if (!isNaN(d)) return ymdLocal(new Date(d.getTime() + 12 * 3600e3)); }
@@ -431,7 +434,9 @@ function theme() {
 
 // ---------- formatting ----------
 function fmtTime(hm) { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + (m ? ':' + pad(m) : '') + (h < 12 ? 'am' : 'pm'); }
+const isAsap = i => i.due === 'ASAP';
 function fmtDue(i) {
+  if (isAsap(i)) return { label: 'ASAP', rel: '', over: false, asap: true };
   const n = days(i.due), d = pd(i.due);
   const opts = { weekday: 'short', month: 'short', day: 'numeric' };
   if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
@@ -478,26 +483,28 @@ function addAll() {
 // ---------- list view ----------
 const inScope = i => view.list === 'mix' ? view.mix.has(i.list) : i.list === view.list;
 function dueOk(i) {
-  const f = view.due; if (f === 'all') return true; if (f === 'none') return !i.due; if (!i.due) return false;
+  const f = view.due; if (f === 'all') return true; if (f === 'asap') return isAsap(i); if (f === 'none') return !i.due; if (!i.due || isAsap(i)) return false;
   const n = days(i.due);
   if (f === 'over') return n < 0; if (f === 'week') return n >= 0 && n < 7;
   if (f === 'month') { const d = pd(i.due), t = new Date(); return d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear(); }
   return true;
 }
-const byDue = (a, b) => (a.due ? 0 : 1) - (b.due ? 0 : 1) || (a.due || '').localeCompare(b.due || '') || (a.time || '99').localeCompare(b.time || '99') || catKey(a).localeCompare(catKey(b)) || a.created - b.created;
-const byCat = (a, b) => (a.cat ? 0 : 1) - (b.cat ? 0 : 1) || catKey(a).localeCompare(catKey(b)) || byDue(a, b);
+const dueRank = i => isAsap(i) ? 0 : i.due ? 1 : 2;   // ASAP first, then dated, then undated
+const byDue = (a, b) => dueRank(a) - dueRank(b) || (a.due || '').localeCompare(b.due || '') || (a.time || '99').localeCompare(b.time || '99') || catKey(a).localeCompare(catKey(b)) || a.created - b.created;
+const byCat = (a, b) => (isAsap(a) ? 0 : 1) - (isAsap(b) ? 0 : 1) || (a.cat ? 0 : 1) - (b.cat ? 0 : 1) || catKey(a).localeCompare(catKey(b)) || byDue(a, b);
 // each category gets its own highlight colour, picked from its name so it stays the same everywhere
 const CAT_TINTS = ['#fbd9b5', '#d7dcfa', '#ead5f3', '#c9ece0', '#fdd3db', '#f2e49c', '#cfe6f3', '#e9dccb', '#f8cfc0', '#f3d4ec', '#c8e3e8'];
 function catTint(c) { let h = 0; for (const ch of c.toUpperCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return CAT_TINTS[h % CAT_TINTS.length]; }
 function row(i) {
   if (editing === i.id) {
     const raw = (i.cat ? i.cat + ' ' : '') + i.text + (i.notes ? ' - ' + i.notes : '');
-    return `<li class="it" data-id="${esc(i.id)}"><form class="ef"><input name="t" value="${esc(raw)}" aria-label="Item"><div class="row"><input type="date" name="d" value="${esc(i.due || '')}" aria-label="Due date"><input type="time" name="tm" value="${esc(i.time || '')}" aria-label="Time"><select name="l" aria-label="List">${lists().map(l => `<option value="${esc(l.id)}"${l.id === i.list ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div><div class="row"><button type="button" class="link del" data-act="del">Delete</button><button type="button" class="ghost" data-act="cancel">Cancel</button><button class="solid">Save</button></div></form></li>`;
+    return `<li class="it" data-id="${esc(i.id)}"><form class="ef"><input name="t" value="${esc(raw)}" aria-label="Item"><div class="row"><label style="display:flex;align-items:center;gap:6px;font-size:11pt"><input type="checkbox" name="asap"${isAsap(i) ? ' checked' : ''} style="width:18px;height:18px;min-height:0;accent-color:#b4353a"> ASAP</label><input type="date" name="d" value="${esc(isAsap(i) ? '' : (i.due || ''))}" aria-label="Due date"><input type="time" name="tm" value="${esc(i.time || '')}" aria-label="Time"><select name="l" aria-label="List">${lists().map(l => `<option value="${esc(l.id)}"${l.id === i.list ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div><div class="row"><button type="button" class="link del" data-act="del">Delete</button><button type="button" class="ghost" data-act="cancel">Cancel</button><button class="solid">Save</button></div></form></li>`;
   }
   const d = i.due ? fmtDue(i) : null;
   const meta = [];
   if (i.cat) meta.push(`<span class="due cat" style="--c:${catTint(i.cat)}">${esc(prettyCat(i.cat))}</span>`);
-  if (d) meta.push(`<span class="due${d.over && !i.done ? ' over' : ''}" style="--c:${MONTHS[d.m].tint}">${esc(d.label)}</span><span>${esc(d.rel)}</span>`);
+  if (d && d.asap) meta.push(`<span class="due asap">ASAP</span>`);
+  else if (d) meta.push(`<span class="due${d.over && !i.done ? ' over' : ''}" style="--c:${MONTHS[d.m].tint}">${esc(d.label)}</span><span>${esc(d.rel)}</span>`);
   if (view.list === 'mix') meta.push(`<span>${esc(listName(i.list))}</span>`);
   if (i.notes) meta.push(`<span>${esc(i.notes)}</span>`);
   return `<li class="it${i.done ? ' done' : ''}" data-id="${esc(i.id)}"><button class="ck" role="checkbox" aria-checked="${!!i.done}" aria-label="${i.done ? 'Mark not done' : 'Mark done'}: ${esc(i.text)}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><div><div class="t">${esc(i.text)}</div>${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</div><button class="edit" aria-label="Edit ${esc(i.text)}">Edit</button></li>`;
@@ -530,7 +537,7 @@ function render(fromSync) {
   $('fbtn').setAttribute('aria-expanded', fOpen); $('fpanel').hidden = !fOpen;
   if (fOpen) $('fpanel').innerHTML = `<div><h4>Sort by</h4><div class="chips">${[['date', 'Due date'], ['cat', 'Category']].map(([k, v]) => `<button class="chip" data-mode="${k}" aria-pressed="${view.mode === k}">${v}</button>`).join('')}</div></div>
     <div><h4>Category</h4><div class="chips">${cats.length ? cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${view.cats.has(c)}">${esc(c ? prettyCat(c) : 'No category')}</button>`).join('') : '<span class="plabel">No categories yet</span>'}</div></div>
-    <div><h4>Due</h4><div class="chips">${[['all', 'Any time'], ['over', 'Overdue'], ['week', 'Next 7 days'], ['month', 'This month'], ['none', 'No due date']].map(([k, v]) => `<button class="chip" data-due="${k}" aria-pressed="${view.due === k}">${v}</button>`).join('')}</div></div>
+    <div><h4>Due</h4><div class="chips">${[['all', 'Any time'], ['asap', 'ASAP'], ['over', 'Overdue'], ['week', 'Next 7 days'], ['month', 'This month'], ['none', 'No due date']].map(([k, v]) => `<button class="chip" data-due="${k}" aria-pressed="${view.due === k}">${v}</button>`).join('')}</div></div>
     ${nf ? '<div><button class="link" data-clear>Clear filters and sorting</button></div>' : ''}`;
 
   const shown = scope.filter(i => (!view.cats.size || view.cats.has(catKey(i))) && dueOk(i));
@@ -608,7 +615,7 @@ $('board').addEventListener('submit', e => {
   const f = e.target, id = f.closest('.it').dataset.id, it = items.get(id);
   editing = null;
   const p = parseItem(f.t.value, { list: f.l.value });
-  if (it && p) { items.set(id, { ...it, text: p.text, cat: p.cat, notes: p.notes || '', due: f.d.value || p.due || '', time: f.tm.value || p.time || '', list: f.l.value }); push(id); }
+  if (it && p) { items.set(id, { ...it, text: p.text, cat: p.cat, notes: p.notes || '', due: (f.asap.checked || p.due === 'ASAP') ? 'ASAP' : (f.d.value || p.due || ''), time: f.tm.value || p.time || '', list: f.l.value }); push(id); }
   render();
 });
 $('board').addEventListener('keydown', e => { if (e.key === 'Escape' && editing) { editing = null; render(); } });

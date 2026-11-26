@@ -153,9 +153,11 @@
     }
     // Mostly Capitalized Already? Finish the job. Otherwise just a capital first letter.
     const words = t.split(' ');
-    const sig = words.filter((w, i) => i === 0 || !MINOR.has(w.toLowerCase()));
-    const capped = sig.filter(w => /^[A-Z]/.test(w)).length;
-    if (sig.length >= 2 && capped >= Math.ceil(sig.length / 2) && capped >= 2) {
+    // Count ordinary words only: names like SpaceApps or LinkedIn and acronyms don't make it a title.
+    const plain = w => !/[a-z][A-Z]/.test(w) && !/^[A-Z0-9&]{2,}$/.test(w);
+    const rest = words.slice(1).filter(w => !MINOR.has(w.toLowerCase()) && plain(w));
+    const capped = rest.filter(w => /^[A-Z]/.test(w)).length;
+    if (/^[A-Z]/.test(words[0]) && rest.length >= 1 && capped >= 1 && capped >= Math.ceil(rest.length / 2)) {
       t = words.map((w, i) => {
         if (/[A-Z].*[A-Z]/.test(w) || /\d/.test(w)) return w;                 // leave acronyms, codes
         if (i > 0 && MINOR.has(w.toLowerCase())) return w.toLowerCase();
@@ -189,8 +191,16 @@
 
   function parseItem(raw, opts) {
     opts = opts || {};
-    const line = String(raw).replace(/^\s*(?:[*•·\-–—]|\d+[.)]|\[\s?\])\s+/, '').trim();
+    let line = String(raw).replace(/^\s*(?:[*•·\-–—]|\d+[.)]|\[\s?\])\s+/, '').trim();
     if (!line) return null;
+    // "asap" anywhere (any case, with or without "due"/"by") makes the deadline ASAP
+    let asap = false;
+    const ASAP_RE = /(^|\s|[-–—|,:;(])(?:(?:due|by)\s+)?a\.?s\.?a\.?p\.?!*(?=$|\s|[-–—|,:;)])/i;
+    if (ASAP_RE.test(line)) {
+      asap = true;
+      line = line.replace(ASAP_RE, '$1').replace(/\s+(?:-{1,3}|[–—|])\s*(?=(?:-{1,3}|[–—|])|$)/g, ' ').replace(/\s{2,}/g, ' ').replace(/[\s\-–—|,:;]+$/, '').replace(/^[\s\-–—|,:;]+/, '').trim();
+      if (!line) return null;
+    }
     const parts = line.split(/\s+(?:-{1,3}|[–—|])\s+|\s*\|\s*|\s+--?\s*$/).map(p => p.trim()).filter(Boolean);
     let due = '', time = '';
     const keep = [];
@@ -238,6 +248,7 @@
     if (!due && time) due = shift(0);
     let text = tidy(words.join(' '));
     if (!text) { text = tidy(cat ? prettyCat(cat) : line); cat = ''; }
+    if (asap) due = 'ASAP';
     return { text, cat, due, time, notes };
   }
 

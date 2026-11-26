@@ -12,6 +12,7 @@ SS trading cards need to make nov 27     ->  Need to make trading cards    Due F
 - **Type loosely.** Dates (`nov 27`, `12/5`, `fri`, `tmrw`, `in 2 weeks`, `this weekend`) and times (`3pm`) are found anywhere in a line. ALL CAPS at the start (or end) becomes the category: short codes stay as typed (`SS`), words become `Chem`. Wording gets tidied: `trading cards need to make` becomes `Need to make trading cards`.
 - **Side panel for adding.** Press **+ Add** (or **N** on a keyboard) to slide out the note, type or paste one item per line, and see what each line becomes before you add it. It tucks away again when you're done, so the list stays in the middle of the page.
 - **Lists:** Grocery, Finals study, Home, School, plus your own. Swipe or click between them, or use **Combined** to see several lists together. Any list can be deleted in Settings (with Undo), and the default ones can be brought back.
+- **ASAP.** Write `asap` anywhere in a line (`LI - do the SpaceApps post asap`) and the item jumps to the top of its list with a red ASAP tag. Editing an item has an ASAP tick box, and Filter can show only ASAP items.
 - **One list, sorted by due date.** Each item's category is a coloured highlight next to its due date, not a separate heading. **Filter** lets you sort by category instead, or show only some categories or due dates (overdue, next 7 days, this month, no due date).
 - **Due dates** are highlighted in their month's colour (peridot for November, ice blue for December, and so on). Late items get a red outline.
 - **Monthly look:** cream paper with a dimmed blue-tile pattern, red lanterns and plum blossom in January, yellow flowers in December. The accent colour changes on the 1st too. Settings can switch to tiles only or plain paper.
@@ -53,7 +54,7 @@ After changing `Code.gs` later, use **Deploy > Manage deployments > Edit > New v
 - **Full-screen app:** open your private link in Safari, **Share > Add to Home Screen**. It opens full screen like an app.
 - **Widget:** install **Scriptable** (free) from the App Store. New script, paste in `widget/boom-boom-bam-widget.js`, fill in the three values at the top (or just run it and it asks), run it once to check. The values are remembered on the phone, so a newer version of the script can be pasted in without filling them in again.
   Then long-press the home screen, **+**, Scriptable, choose the **Large** size, add it, long-press it, **Edit Widget**, Script: this one.
-  Optional **Parameter** to show only some lists: `school,finals`. Blank shows everything.
+  By default the widget shows only your **ASAP** items, from every list. Optional **Parameter**: `all` shows everything, or list names like `school,finals` show just those lists.
 
 iPhone widgets top out at the Large size (about half the screen, around 11 items), and they can't take taps on individual items, so tapping opens the full app.
 
